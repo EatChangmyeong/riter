@@ -1,0 +1,23 @@
+{
+  "name": "riter",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "An iterator wrapper that supports Rust-style chaining",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "mocha"
+  },
+  "repository": "github:EatChangmyeong/riter",
+  "author": "EatChangmyeong",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/EatChangmyeong/riter/issues"
+  },
+  "homepage": "https://github.com/EatChangmyeong/riter#readme",
+  "devDependencies": {
+    "mocha": "^9.2.1",
+    "typescript": "^4.6.2"
+  }
+}
