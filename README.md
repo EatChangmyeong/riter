@@ -24,9 +24,9 @@ new Riter(document.querySelectorAll('td'))
 
 ## Usage
 
-### new Riter(iterable)
+### `new Riter(iterable)`
 
-### new AsyncRiter(asyncIterable)
+### `new AsyncRiter(asyncIterable)`
 
 ## Note to self
 
