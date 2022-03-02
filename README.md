@@ -24,9 +24,55 @@ new Riter(document.querySelectorAll('td'))
 
 ## Usage
 
-### `new Riter(iterable)`
+For the sake of completeness, an iterable/iterator is object that correctly implements TypeScript's `Iterable<T>`/`Iterator<T>` interface respectively; their `async` counterparts, on the other hand, should correctly implement `AsyncIterable<T>` and `AsyncIterator<T>`.
 
-### `new AsyncRiter(asyncIterable)`
+All methods that accepts and/or returns `number` does not accept `BigInt`s for now, but they might be supported in later updates. Expect poor support for arguments beyond `Number.MAX_SAFE_INTEGER`.
+
+If an error occurs in any async method, the method itself won't throw anything; the returned promise will reject instead.
+
+### `new Riter(iterable: Iterable<T>)`
+
+Constructs a new `Riter` object.
+
+#### `#iter: Iterator<T>`
+
+Underlying iterator. You might not want to directly access and/or modify this property.
+
+#### `#next(): IteratorResult<T>`
+
+Iterator implementation for `Riter` objects.
+
+#### `#[Symbol.iterator](): IterableIterator<T>`
+
+Iterable implementation for `Riter` objects.
+
+#### `#advanceBy(n: number): number`
+
+Discards next `n` elements away from the iterator until `{ done: true }` is encountered.
+
+**`n`** must be zero or greater; non-integer values are rounded down. **Returns** the number of elements discarded by this call, excluding `{ done: true }` element.
+
+### `new AsyncRiter(asyncIterable: AsyncIterable<T>)`
+
+Constructs a new `AsyncRiter` object.
+
+#### `#asyncIter: AsyncIterator<T>`
+
+Underlying async iterator. You might not want to directly access and/or modify this property.
+
+#### `#next(): Promise<IteratorResult<T>>`
+
+Async iterator implementation for `AsyncRiter` objects.
+
+#### `#[Symbol.asyncIterator](): AsyncIterableIterator<T>`
+
+Async iterable implementation for `AsyncRiter` objects.
+
+#### `#advanceBy(n: number): Promise<number>`
+
+Discards next `n` elements away from the async iterator until `{ done: true }` is encountered.
+
+**`n`** must be zero or greater; non-integer values are rounded down. **Resolves with** the number of elements discarded by this call, excluding `{ done: true }` element.
 
 ## Note to self
 

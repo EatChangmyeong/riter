@@ -8,6 +8,18 @@ class Riter {
     [Symbol.iterator]() {
         return this;
     }
+    advanceBy(n) {
+        if (typeof n !== 'number')
+            throw new TypeError(`${n} is not a number`);
+        if (isNaN(n) || n < 0)
+            throw new RangeError(`${n} should be zero or greater`);
+        n = Math.floor(n);
+        let discarded = 0;
+        for (; discarded < n; discarded++)
+            if (this.iter.next().done)
+                break;
+        return discarded;
+    }
 }
 class AsyncRiter {
     constructor(asyncIterable) {
@@ -18,6 +30,18 @@ class AsyncRiter {
     }
     [Symbol.asyncIterator]() {
         return this;
+    }
+    async advanceBy(n) {
+        if (typeof n !== 'number')
+            throw new TypeError(`${n} is not a number`);
+        if (isNaN(n) || n < 0)
+            throw new RangeError(`${n} should be zero or greater`);
+        n = Math.floor(n);
+        let discarded = 0;
+        for (; discarded < n; discarded++)
+            if ((await this.asyncIter.next()).done)
+                break;
+        return discarded;
     }
 }
 export { Riter, AsyncRiter };
