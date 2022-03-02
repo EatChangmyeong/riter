@@ -20,6 +20,17 @@ class Riter {
                 break;
         return discarded;
     }
+    every(f) {
+        if (typeof f !== 'function')
+            throw new TypeError(`${f} is not a function`);
+        while (true) {
+            const { value, done } = this.iter.next();
+            if (done)
+                return true;
+            if (!f(value))
+                return false;
+        }
+    }
 }
 class AsyncRiter {
     constructor(asyncIterable) {
@@ -42,6 +53,17 @@ class AsyncRiter {
             if ((await this.asyncIter.next()).done)
                 break;
         return discarded;
+    }
+    async every(f) {
+        if (typeof f !== 'function')
+            throw new TypeError(`${f} is not a function`);
+        while (true) {
+            const { value, done } = await this.asyncIter.next();
+            if (done)
+                return true;
+            if (!await f(value))
+                return false;
+        }
     }
 }
 export { Riter, AsyncRiter };

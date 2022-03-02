@@ -96,6 +96,7 @@ describe('Riter', () => {
 				Assert.throws(() => new Riter(iterable).advanceBy(n), type);
 			}
 
+			testWith([0], false, TypeError);
 			testWith([1, 2, 3], 5n, TypeError); // BigInt is unfortunately not supported
 			testWith([4, 5, 6, 7], '3', TypeError);
 			testWith([8, 9], Symbol(), TypeError);
@@ -105,6 +106,50 @@ describe('Riter', () => {
 			testWith('1234', -1, RangeError);
 			testWith('56', -Infinity, RangeError);
 			testWith('789', NaN, RangeError);
+		});
+	});
+
+	describe('#every()', () => {
+		it('consumes the iterator until the first mismatch', () => {
+			const riter = new Riter([1, 3, 5, 7, 10, 11, 14]);
+			riter.every(x => x % 2 === 1);
+			Assert.deepEqual(riter.next(), yields(11));
+			Assert.deepEqual(riter.next(), yields(14));
+			Assert.deepEqual(riter.next(), done());
+		});
+
+		it('returns true if every element matches', () => {
+			function testWith(iterable, f) {
+				Assert.equal(new Riter(iterable).every(f), true);
+			}
+
+			testWith([1, 3, 5, 7, 9], x => x % 2 === 1);
+			testWith(new Set([-3, -5, -7, -8]), x => x < 0);
+			testWith('eatchangmyeong', x => x.toLowerCase() === x);
+			testWith([], () => false); // should vacuously return true
+		});
+
+		it('returns false if any elements does not match', () => {
+			function testWith(iterable, f) {
+				Assert.equal(new Riter(iterable).every(f), false);
+			}
+
+			testWith([1, 3, 5, 7, 10], x => x % 2 === 1);
+			testWith(new Set([-3, -5, 7, -8]), x => x < 0);
+			testWith('EatChangmyeong', x => x.toLowerCase() === x);
+		});
+
+		it('rejects non-function argument', () => {
+			function testWith(iterable, f) {
+				Assert.throws(() => new Riter(iterable).every(f), TypeError);
+			}
+
+			testWith([1, 2, 3, 4, 5], true);
+			testWith([1, 3, 5, 7, 9], 2);
+			testWith([4, 6, 8], 2n);
+			testWith('asdfasdf', 'asdfasdf');
+			testWith('qwer', {});
+			testWith('zxcv', []);
 		});
 	});
 });
@@ -205,6 +250,7 @@ describe('AsyncRiter', () => {
 			}
 
 			await Promise.all([
+				testWith([0], false, TypeError),
 				testWith([1, 2, 3], 5n, TypeError), // BigInt is unfortunately not supported
 				testWith([4, 5, 6, 7], '3', TypeError),
 				testWith([8, 9], Symbol(), TypeError),
@@ -214,6 +260,79 @@ describe('AsyncRiter', () => {
 				testWith('1234', -1, RangeError),
 				testWith('56', -Infinity, RangeError),
 				testWith('789', NaN, RangeError),
+			]);
+		});
+	});
+
+	describe('#every()', () => {
+		it('consumes the iterator until the first mismatch', async () => {
+			const riter = new AsyncRiter(intoAsync([1, 3, 5, 7, 10, 11, 14]));
+			await riter.every(x => x % 2 === 1);
+			Assert.deepEqual(await riter.next(), yields(11));
+			Assert.deepEqual(await riter.next(), yields(14));
+			Assert.deepEqual(await riter.next(), done());
+		});
+
+		it('returns true if every element matches', async () => {
+			async function testWith(iterable, f) {
+				Assert.equal(
+					await new AsyncRiter(intoAsync(iterable)).every(f),
+					true
+				);
+			}
+
+			await Promise.all([
+				testWith([1, 3, 5, 7, 9], x => x % 2 === 1),
+				testWith(new Set([-3, -5, -7, -8]), x => x < 0),
+				testWith('eatchangmyeong', x => x.toLowerCase() === x),
+				testWith([], () => false), // should vacuously return true
+			]);
+		});
+
+		it('returns false if any elements does not match', async () => {
+			async function testWith(iterable, f) {
+				Assert.equal(
+					await new AsyncRiter(intoAsync(iterable)).every(f),
+					false
+				);
+			}
+
+			await Promise.all([
+				testWith([1, 3, 5, 7, 10], x => x % 2 === 1),
+				testWith(new Set([-3, -5, 7, -8]), x => x < 0),
+				testWith('EatChangmyeong', x => x.toLowerCase() === x),
+			]);
+		});
+
+		it('rejects non-function argument', async () => {
+			async function testWith(iterable, f) {
+				await Assert.rejects(
+					new AsyncRiter(intoAsync(iterable)).every(f),
+					TypeError
+				);
+			}
+
+			await Promise.all([
+				testWith([1, 2, 3, 4, 5], true),
+				testWith([1, 3, 5, 7, 9], 2),
+				testWith([4, 6, 8], 2n),
+				testWith('asdfasdf', 'asdfasdf'),
+				testWith('qwer', {}),
+				testWith('zxcv', []),
+			]);
+		});
+
+		it('accepts promise as callback return value', async () => {
+			async function testWith(iterable, f, returns) {
+				Assert.equal(
+					await new AsyncRiter(intoAsync(iterable)).every(x => Promise.resolve(f(x))),
+					returns
+				);
+			}
+
+			await Promise.all([
+				testWith([2, 4, 6], x => x % 2 === 0, true),
+				testWith([3, 6, 8], x => x % 3 === 0, false),
 			]);
 		});
 	});

@@ -23,6 +23,20 @@ class Riter<T> implements IterableIterator<T> {
 				break;
 		return discarded;
 	}
+	// alias to #every()
+	all(f: (a: T) => boolean): boolean { return this.every(f); }
+	every(f: (a: T) => boolean): boolean {
+		if(typeof f !== 'function')
+			throw new TypeError(`${f} is not a function`);
+
+		while(true) {
+			const { value, done } = this.iter.next();
+			if(done)
+				return true;
+			if(!(f(value) as unknown))
+				return false;
+		}
+	}
 }
 
 class AsyncRiter<T> implements AsyncIterableIterator<T> {
@@ -49,6 +63,22 @@ class AsyncRiter<T> implements AsyncIterableIterator<T> {
 			if((await this.asyncIter.next()).done)
 				break;
 		return discarded;
+	}
+	// alias to #every()
+	async all(f: (a: T) => boolean | Promise<boolean>): Promise<boolean> {
+		return this.every(f);
+	}
+	async every(f: (a: T) => boolean | Promise<boolean>): Promise<boolean> {
+		if(typeof f !== 'function')
+			throw new TypeError(`${f} is not a function`);
+
+		while(true) {
+			const { value, done } = await this.asyncIter.next();
+			if(done)
+				return true;
+			if(!await (f(value) as unknown))
+				return false;
+		}
 	}
 }
 
