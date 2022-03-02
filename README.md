@@ -15,8 +15,8 @@ TODO: actually implement them
 // only for demonstration: you should use :nth-child(odd) selector instead
 new Riter(document.querySelectorAll('td'))
 	.enumerate()
-	.filter([i, td] => i % 2 == 1 && td.textContent == 'foo')
-	.forEach([, td] => td.textContent += 'bar');
+	.filter(([i, td]) => i % 2 == 1 && td.textContent == 'foo')
+	.forEach(([, td]) => td.textContent += 'bar');
 
 // collect elements of an async iterator into an array
 [...await new AsyncRiter(asyncIterable).toSync()]
