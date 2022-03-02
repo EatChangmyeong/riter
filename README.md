@@ -28,7 +28,7 @@ For the sake of completeness, an iterable/iterator is object that correctly impl
 
 All methods that accepts and/or returns `number` does not accept `BigInt`s for now, but they might be supported in later updates. Expect poor support for arguments beyond `Number.MAX_SAFE_INTEGER`.
 
-If an error occurs in any async method, the method itself won't throw anything; the returned promise will reject instead.
+If an error occurs in any `async` method, the method itself won't throw anything; the returned promise will reject instead.
 
 ### `new Riter(iterable: Iterable<T>)`
 
