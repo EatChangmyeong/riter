@@ -23,8 +23,13 @@ class Riter<T> implements IterableIterator<T> {
 				break;
 		return discarded;
 	}
+
 	// alias to #every()
 	all(f: (a: T) => boolean): boolean { return this.every(f); }
+
+	// alias to #some()
+	any(f: (a: T) => boolean): boolean { return this.some(f); }
+
 	every(f: (a: T) => boolean): boolean {
 		if(typeof f !== 'function')
 			throw new TypeError(`${f} is not a function`);
@@ -35,6 +40,19 @@ class Riter<T> implements IterableIterator<T> {
 				return true;
 			if(!(f(value) as unknown))
 				return false;
+		}
+	}
+
+	some(f: (a: T) => boolean): boolean {
+		if(typeof f !== 'function')
+			throw new TypeError(`${f} is not a function`);
+
+		while(true) {
+			const { value, done } = this.iter.next();
+			if(done)
+				return false;
+			if(f(value) as unknown)
+				return true;
 		}
 	}
 }
@@ -64,10 +82,17 @@ class AsyncRiter<T> implements AsyncIterableIterator<T> {
 				break;
 		return discarded;
 	}
+
 	// alias to #every()
 	async all(f: (a: T) => boolean | Promise<boolean>): Promise<boolean> {
 		return this.every(f);
 	}
+
+	// alias to #some()
+	async any(f: (a: T) => boolean | Promise<boolean>): Promise<boolean> {
+		return this.some(f);
+	}
+
 	async every(f: (a: T) => boolean | Promise<boolean>): Promise<boolean> {
 		if(typeof f !== 'function')
 			throw new TypeError(`${f} is not a function`);
@@ -78,6 +103,19 @@ class AsyncRiter<T> implements AsyncIterableIterator<T> {
 				return true;
 			if(!await (f(value) as unknown))
 				return false;
+		}
+	}
+
+	async some(f: (a: T) => boolean | Promise<boolean>): Promise<boolean> {
+		if(typeof f !== 'function')
+			throw new TypeError(`${f} is not a function`);
+
+		while(true) {
+			const { value, done } = await this.asyncIter.next();
+			if(done)
+				return false;
+			if(await (f(value) as unknown))
+				return true;
 		}
 	}
 }

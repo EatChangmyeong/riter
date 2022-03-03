@@ -7,6 +7,32 @@ function yields(x) {
 function done(x = undefined) {
 	return { value: x, done: true };
 }
+function iterEqual(lhs, rhs, n = Infinity) {
+	lhs = lhs[Symbol.iterator]();
+	rhs = rhs[Symbol.iterator]();
+	for(let i = 0; i < n; i++) {
+		const lnext = lhs.next(), rnext = rhs.next();
+		Assert.deepEqual(lnext, rnext);
+		if(lnext.done)
+			break;
+	}
+}
+function iterDone(iter) {
+	Assert.ok(iter.next().done);
+}
+async function asyncIterEqual(lhs, rhs, n = Infinity) {
+	lhs = lhs[Symbol.asyncIterator]();
+	rhs = rhs[Symbol.asyncIterator]();
+	for(let i = 0; i < n; i++) {
+		const lnext = lhs.next(), rnext = rhs.next();
+		Assert.deepEqual(await lnext, await rnext);
+		if((await lnext).done)
+			break;
+	}
+}
+async function asyncIterDone(iter) {
+	Assert.ok((await iter.next()).done);
+}
 async function* intoAsync(iterable) {
 	yield* iterable; // async yield* can also iterate over sync iterables
 }
@@ -17,9 +43,9 @@ describe('Riter', () => {
 	});
 	it('is an iterator', () => {
 		const iter = new Riter([1, 2]);
-		Assert.deepEqual(iter.next(), yields(1));
-		Assert.deepEqual(iter.next(), yields(2));
-		Assert.deepEqual(iter.next(), done());
+		Assert.deepEqual(iter.next(), { value: 1, done: false });
+		Assert.deepEqual(iter.next(), { value: 2, done: false });
+		Assert.deepEqual(iter.next(), { value: undefined, done: true });
 	});
 
 	describe('#constructor()', () => {
@@ -30,9 +56,7 @@ describe('Riter', () => {
 			new Riter(new Set([1, 2, 3]));
 			new Riter(Object.entries({}));
 			new Riter((function*() {})()); // generator object
-			new Riter({ // user-defined iterable
-				*[Symbol.iterator]() {},
-			});
+			new Riter({ *[Symbol.iterator]() {} }); // user-defined iterable
 			new Riter({ // both iterable and async iterable
 				*[Symbol.iterator]() {},
 				async *[Symbol.asyncIterator]() {},
@@ -52,9 +76,7 @@ describe('Riter', () => {
 			// async generator objects are only async iterable, not sync
 			testWith((async function*() {})());
 			// user-defined async iterable, shouldn't be iterable
-			testWith({
-				async *[Symbol.asyncIterator]() {},
-			});
+			testWith({ async *[Symbol.asyncIterator]() {} });
 		});
 	});
 
@@ -63,9 +85,7 @@ describe('Riter', () => {
 			function testWith(iterable, n, remaining) {
 				const riter = new Riter(iterable);
 				Assert.equal(riter.advanceBy(n), Math.floor(Math.abs(n)));
-				for(const x of remaining)
-					Assert.deepEqual(riter.next(), yields(x));
-				Assert.deepEqual(riter.next(), done());
+				iterEqual(riter, remaining);
 			}
 
 			testWith([1, 2, 3, 4, 5], 3, [4, 5]);
@@ -82,7 +102,7 @@ describe('Riter', () => {
 			function testWith(iterable, n, expected) {
 				const riter = new Riter(iterable);
 				Assert.equal(riter.advanceBy(n), expected);
-				Assert.deepEqual(riter.next(), done());
+				iterDone(riter);
 			}
 
 			testWith([1, 2, 3, 4, 5], 7, 5);
@@ -93,7 +113,10 @@ describe('Riter', () => {
 		});
 		it('rejects non-number or negative argument', () => {
 			function testWith(iterable, n, type) {
-				Assert.throws(() => new Riter(iterable).advanceBy(n), type);
+				Assert.throws(
+					() => new Riter(iterable).advanceBy(n),
+					type
+				);
 			}
 
 			testWith([0], false, TypeError);
@@ -113,9 +136,7 @@ describe('Riter', () => {
 		it('consumes the iterator until the first mismatch', () => {
 			const riter = new Riter([1, 3, 5, 7, 10, 11, 14]);
 			riter.every(x => x % 2 === 1);
-			Assert.deepEqual(riter.next(), yields(11));
-			Assert.deepEqual(riter.next(), yields(14));
-			Assert.deepEqual(riter.next(), done());
+			iterEqual(riter, [11, 14]);
 		});
 
 		it('returns true if every element matches', () => {
@@ -129,7 +150,7 @@ describe('Riter', () => {
 			testWith([], () => false); // should vacuously return true
 		});
 
-		it('returns false if any elements does not match', () => {
+		it('returns false if any element does not match', () => {
 			function testWith(iterable, f) {
 				Assert.equal(new Riter(iterable).every(f), false);
 			}
@@ -141,7 +162,52 @@ describe('Riter', () => {
 
 		it('rejects non-function argument', () => {
 			function testWith(iterable, f) {
-				Assert.throws(() => new Riter(iterable).every(f), TypeError);
+				Assert.throws(
+					() => new Riter(iterable).every(f),
+					TypeError
+				);
+			}
+
+			testWith([1, 2, 3, 4, 5], true);
+			testWith([1, 3, 5, 7, 9], 2);
+			testWith([4, 6, 8], 2n);
+			testWith('asdfasdf', 'asdfasdf');
+			testWith('qwer', {});
+			testWith('zxcv', []);
+		});
+	});
+
+	describe('#some()', () => {
+		it('consumes the iterator until the first match', () => {
+			const riter = new Riter([1, 3, 5, 7, 10, 11, 14]);
+			riter.some(x => x % 2 === 0);
+			iterEqual(riter, [11, 14]);
+		});
+
+		it('returns true if any element matches', () => {
+			function testWith(iterable, f) {
+				Assert.equal(new Riter(iterable).some(f), true);
+			}
+
+			testWith([1, 3, 5, 7, 9], x => x % 2 === 1);
+			testWith(new Set([-3, -5, -7, -8]), x => x < -7);
+			testWith('EatChangmyeong', x => x.toUpperCase() === x);
+		});
+
+		it('returns false if no elements match', () => {
+			function testWith(iterable, f) {
+				Assert.equal(new Riter(iterable).some(f), false);
+			}
+
+			testWith([1, 3, 5, 7, 9], x => x % 2 === 0);
+			testWith(new Set([-3, -5, -7, -8]), x => x >= 0);
+			testWith('EATCHANGMYEONG', x => x.toLowerCase() === x);
+			testWith([], () => true); // should vacuously return false
+		});
+
+		it('rejects non-function argument', () => {
+			function testWith(iterable, f) {
+				Assert.throws(() => new Riter(iterable).some(f), TypeError);
 			}
 
 			testWith([1, 2, 3, 4, 5], true);
@@ -173,9 +239,7 @@ describe('AsyncRiter', () => {
 			// there are no built-in async iterables yet, I have to define some myself
 
 			new AsyncRiter((async function*() {})()); // async generator object
-			new AsyncRiter({ // user-defined async iterable
-				async *[Symbol.asyncIterator]() {},
-			});
+			new AsyncRiter({ async *[Symbol.asyncIterator]() {} }); // user-defined async iterable
 			new AsyncRiter({ // both iterable and async iterable
 				*[Symbol.iterator]() {},
 				async *[Symbol.asyncIterator]() {},
@@ -198,9 +262,7 @@ describe('AsyncRiter', () => {
 			// generator objects are only sync iterable, not async
 			testWith((function*() {})());
 			// user-defined sync iterable, shouldn't be async iterable
-			testWith({
-				*[Symbol.iterator]() {},
-			});
+			testWith({ *[Symbol.iterator]() {} });
 		});
 	});
 
@@ -209,9 +271,7 @@ describe('AsyncRiter', () => {
 			async function testWith(iterable, n, remaining) {
 				const riter = new AsyncRiter(intoAsync(iterable));
 				Assert.equal(await riter.advanceBy(n), Math.floor(Math.abs(n)));
-				for(const x of remaining)
-					Assert.deepEqual(await riter.next(), yields(x));
-				Assert.deepEqual(await riter.next(), done());
+				await asyncIterEqual(riter, intoAsync(remaining));
 			}
 
 			await Promise.all([
@@ -230,7 +290,7 @@ describe('AsyncRiter', () => {
 			async function testWith(iterable, n, expected) {
 				const riter = new AsyncRiter(intoAsync(iterable));
 				Assert.equal(await riter.advanceBy(n), expected);
-				Assert.deepEqual(await riter.next(), done());
+				await asyncIterDone(riter);
 			}
 
 			await Promise.all([
@@ -268,9 +328,7 @@ describe('AsyncRiter', () => {
 		it('consumes the iterator until the first mismatch', async () => {
 			const riter = new AsyncRiter(intoAsync([1, 3, 5, 7, 10, 11, 14]));
 			await riter.every(x => x % 2 === 1);
-			Assert.deepEqual(await riter.next(), yields(11));
-			Assert.deepEqual(await riter.next(), yields(14));
-			Assert.deepEqual(await riter.next(), done());
+			await asyncIterEqual(riter, intoAsync([11, 14]));
 		});
 
 		it('returns true if every element matches', async () => {
@@ -289,7 +347,7 @@ describe('AsyncRiter', () => {
 			]);
 		});
 
-		it('returns false if any elements does not match', async () => {
+		it('returns false if any element does not match', async () => {
 			async function testWith(iterable, f) {
 				Assert.equal(
 					await new AsyncRiter(intoAsync(iterable)).every(f),
@@ -333,6 +391,77 @@ describe('AsyncRiter', () => {
 			await Promise.all([
 				testWith([2, 4, 6], x => x % 2 === 0, true),
 				testWith([3, 6, 8], x => x % 3 === 0, false),
+			]);
+		});
+	});
+
+	describe('#some()', () => {
+		it('consumes the iterator until the first match', async () => {
+			const riter = new AsyncRiter(intoAsync([1, 3, 5, 7, 10, 11, 14]));
+			await riter.some(x => x % 2 === 0);
+			await asyncIterEqual(riter, intoAsync([11, 14]));
+		});
+
+		it('returns true if any element matches', async () => {
+			async function testWith(iterable, f) {
+				Assert.equal(
+					await new AsyncRiter(intoAsync(iterable)).some(f),
+					true
+				);
+			}
+
+			await Promise.all([
+				testWith([1, 3, 5, 7, 9], x => x % 2 === 1),
+				testWith(new Set([-3, -5, -7, -8]), x => x < -7),
+				testWith('EatChangmyeong', x => x.toUpperCase() === x),
+			]);
+		});
+
+		it('returns false if no elements match', async () => {
+			async function testWith(iterable, f) {
+				Assert.equal(
+					await new AsyncRiter(intoAsync(iterable)).some(f),
+					false
+				);
+			}
+
+			await Promise.all([
+				testWith([1, 3, 5, 7, 9], x => x % 2 === 0),
+				testWith(new Set([-3, -5, -7, -8]), x => x >= 0),
+				testWith('EATCHANGMYEONG', x => x.toLowerCase() === x),
+				testWith([], () => true), // should vacuously return false
+			]);
+		});
+
+		it('rejects non-function argument', async () => {
+			async function testWith(iterable, f) {
+				await Assert.rejects(
+					new AsyncRiter(intoAsync(iterable)).some(f),
+					TypeError
+				);
+			}
+
+			await Promise.all([
+				testWith([1, 2, 3, 4, 5], true),
+				testWith([1, 3, 5, 7, 9], 2),
+				testWith([4, 6, 8], 2n),
+				testWith('asdfasdf', 'asdfasdf'),
+				testWith('qwer', {}),
+				testWith('zxcv', []),
+			]);
+		});
+
+		it('accepts promise as callback return value', async () => {
+			async function testWith(iterable, f, returns) {
+				Assert.equal(
+					await new AsyncRiter(intoAsync(iterable)).some(x => Promise.resolve(f(x))),
+					returns
+				);
+			}
+
+			await Promise.all([
+				testWith([3, 5, 6], x => x % 2 === 0, true),
+				testWith([4, 7, 10], x => x % 3 === 0, false),
 			]);
 		});
 	});

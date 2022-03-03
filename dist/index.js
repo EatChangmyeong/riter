@@ -20,6 +20,10 @@ class Riter {
                 break;
         return discarded;
     }
+    // alias to #every()
+    all(f) { return this.every(f); }
+    // alias to #some()
+    any(f) { return this.some(f); }
     every(f) {
         if (typeof f !== 'function')
             throw new TypeError(`${f} is not a function`);
@@ -29,6 +33,17 @@ class Riter {
                 return true;
             if (!f(value))
                 return false;
+        }
+    }
+    some(f) {
+        if (typeof f !== 'function')
+            throw new TypeError(`${f} is not a function`);
+        while (true) {
+            const { value, done } = this.iter.next();
+            if (done)
+                return false;
+            if (f(value))
+                return true;
         }
     }
 }
@@ -54,6 +69,14 @@ class AsyncRiter {
                 break;
         return discarded;
     }
+    // alias to #every()
+    async all(f) {
+        return this.every(f);
+    }
+    // alias to #some()
+    async any(f) {
+        return this.some(f);
+    }
     async every(f) {
         if (typeof f !== 'function')
             throw new TypeError(`${f} is not a function`);
@@ -63,6 +86,17 @@ class AsyncRiter {
                 return true;
             if (!await f(value))
                 return false;
+        }
+    }
+    async some(f) {
+        if (typeof f !== 'function')
+            throw new TypeError(`${f} is not a function`);
+        while (true) {
+            const { value, done } = await this.asyncIter.next();
+            if (done)
+                return false;
+            if (await f(value))
+                return true;
         }
     }
 }

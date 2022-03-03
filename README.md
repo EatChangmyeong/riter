@@ -50,7 +50,7 @@ Iterable implementation for `Riter` objects.
 
 #### `#advanceBy(n: number): number`
 
-*Eagerly* discards next `n` elements away from the iterator until `{ done: true }` is encountered.
+*Eagerly* discards next `n` elements away from the iterator until `{ done: true }` is encountered. The last `{ done: true }` element is also discarded.
 
 **`n`** must be zero or greater; non-integer values are rounded down. **Returns** the number of elements discarded by this call, excluding `{ done: true }` element.
 
@@ -60,6 +60,10 @@ Iterable implementation for `Riter` objects.
 
 Alias to `#every()`.
 
+#### `#any(f: (a: T) => boolean): boolean`
+
+Alias to `#some()`.
+
 #### `#every(f: (a: T) => boolean): boolean`
 
 **Returns** `true` if and only if every remaining elements matches the given predicate **`f`**.
@@ -67,6 +71,14 @@ Alias to `#every()`.
 This method will consume elements out of the iterator until the first mismatch (inclusive). In fact, it *is* okay for `f` to return any truthy/falsy values other than just booleans; returning booleans is still recommended.
 
 It will vacuously return `true` if the iterator is empty.
+
+#### `#some(f: (a: T) => boolean): boolean`
+
+**Returns** `true` if and only if any of the remaining elements matches the given predicate **`f`**.
+
+This method will consume elements out of the iterator until the first match (inclusive). In fact, it *is* okay for `f` to return any truthy/falsy values other than just booleans; returning booleans is still recommended.
+
+It will vacuously return `false` if the iterator is empty.
 
 ### `new AsyncRiter(asyncIterable: AsyncIterable<T>)`
 
@@ -86,7 +98,7 @@ Async iterable implementation for `AsyncRiter` objects.
 
 #### `#advanceBy(n: number): Promise<number>`
 
-*Eagerly* discards next `n` elements away from the async iterator until `{ done: true }` is encountered.
+*Eagerly* discards next `n` elements away from the async iterator until `{ done: true }` is encountered. The last `{ done: true }` element is also discarded.
 
 **`n`** must be zero or greater; non-integer values are rounded down. **Resolves with** the number of elements discarded by this call, excluding `{ done: true }` element.
 
@@ -96,6 +108,10 @@ Async iterable implementation for `AsyncRiter` objects.
 
 Alias to `#every()`.
 
+#### `#any(f: (a: T) => boolean): boolean`
+
+Alias to `#some()`.
+
 #### `#every(f: (a: T) => boolean | Promise<boolean>): boolean`
 
 **Resolves with** `true` if and only if every remaining elements matches the given predicate **`f`**.
@@ -103,6 +119,14 @@ Alias to `#every()`.
 This method will consume elements out of the iterator until the first mismatch (inclusive). In fact, it *is* okay for `f` to return any truthy/falsy values other than just booleans; returning booleans is still recommended.
 
 It will vacuously resolve with `true` if the iterator is empty.
+
+#### `#some(f: (a: T) => boolean): boolean`
+
+**Resolves with** `true` if and only if any of the remaining elements matches the given predicate **`f`**.
+
+This method will consume elements out of the iterator until the first match (inclusive). In fact, it *is* okay for `f` to return any truthy/falsy values other than just booleans; returning booleans is still recommended.
+
+It will vacuously return `false` if the iterator is empty.
 
 ## Note to self
 
