@@ -30,6 +30,16 @@ class Riter<T> implements IterableIterator<T> {
 	// alias to #some()
 	any(f: (a: T) => boolean): boolean { return this.some(f); }
 
+	chain(...its: Iterable<T>[]): Riter<T> {
+		if(its.length === 0)
+			return this;
+		return new Riter((function*(lhs: Riter<T>, rhs: Iterable<T>[]) {
+			yield* lhs;
+			for(const x of rhs)
+				yield* x;
+		})(this, its));
+	}
+
 	every(f: (a: T) => boolean): boolean {
 		if(typeof f !== 'function')
 			throw new TypeError(`${f} is not a function`);
@@ -91,6 +101,18 @@ class AsyncRiter<T> implements AsyncIterableIterator<T> {
 	// alias to #some()
 	async any(f: (a: T) => boolean | Promise<boolean>): Promise<boolean> {
 		return this.some(f);
+	}
+
+	chain(...its: AsyncIterable<T>[]): AsyncRiter<T> {
+		if(its.length === 0)
+			return this;
+		return new AsyncRiter((async function*(
+			lhs: AsyncRiter<T>, rhs: AsyncIterable<T>[]
+		) {
+			yield* lhs;
+			for(const x of rhs)
+				yield* x;
+		})(this, its));
 	}
 
 	async every(f: (a: T) => boolean | Promise<boolean>): Promise<boolean> {

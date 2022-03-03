@@ -24,6 +24,15 @@ class Riter {
     all(f) { return this.every(f); }
     // alias to #some()
     any(f) { return this.some(f); }
+    chain(...its) {
+        if (its.length === 0)
+            return this;
+        return new Riter((function* (lhs, rhs) {
+            yield* lhs;
+            for (const x of rhs)
+                yield* x;
+        })(this, its));
+    }
     every(f) {
         if (typeof f !== 'function')
             throw new TypeError(`${f} is not a function`);
@@ -76,6 +85,15 @@ class AsyncRiter {
     // alias to #some()
     async any(f) {
         return this.some(f);
+    }
+    chain(...its) {
+        if (its.length === 0)
+            return this;
+        return new AsyncRiter((async function* (lhs, rhs) {
+            yield* lhs;
+            for (const x of rhs)
+                yield* x;
+        })(this, its));
     }
     async every(f) {
         if (typeof f !== 'function')

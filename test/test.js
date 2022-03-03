@@ -1,12 +1,6 @@
 import Assert from 'assert/strict';
 import { Riter, AsyncRiter } from '../dist/index.js';
 
-function yields(x) {
-	return { value: x, done: false };
-}
-function done(x = undefined) {
-	return { value: x, done: true };
-}
 function iterEqual(lhs, rhs, n = Infinity) {
 	lhs = lhs[Symbol.iterator]();
 	rhs = rhs[Symbol.iterator]();
@@ -129,6 +123,49 @@ describe('Riter', () => {
 			testWith('1234', -1, RangeError);
 			testWith('56', -Infinity, RangeError);
 			testWith('789', NaN, RangeError);
+		});
+	});
+
+	describe('#chain()', () => {
+		it('chains two iterators together', () => {
+			function testWith(lhs, rhs, expected) {
+				iterEqual(
+					new Riter(lhs).chain(rhs),
+					expected
+				);
+			}
+
+			testWith([1, 2, 3], [4, 5, 6], [1, 2, 3, 4, 5, 6]);
+			testWith('Chained', 'Iterator', 'ChainedIterator');
+			testWith([1, 2, 3], [], [1, 2, 3]);
+			testWith([], [1, 2, 3], [1, 2, 3]);
+			testWith([], [], []);
+		});
+		it('also chains three or more iterators', () => {
+			function testWith(lhs, rhs, expected) {
+				iterEqual(
+					new Riter(lhs).chain(...rhs),
+					expected
+				);
+			}
+
+			testWith([1, 2], [[3, 4], [5, 6]], [1, 2, 3, 4, 5, 6]);
+			testWith('foo', ['bar', 'baz', 'quux'], 'foobarbazquux');
+			testWith([10], [[], [], []], [10]);
+		});
+		it('is no-op if no arguments are provided', () => {
+			function testWith(lhs) {
+				const
+					riter = new Riter(lhs),
+					iter = riter.iter;
+				iter.next = () => Assert.fail();
+				const chained = riter.chain();
+				Assert.equal(chained, riter);
+				Assert.equal(chained.iter, iter);
+			}
+
+			testWith([1, 2, 3]);
+			testWith('noop');
 		});
 	});
 
@@ -321,6 +358,54 @@ describe('AsyncRiter', () => {
 				testWith('56', -Infinity, RangeError),
 				testWith('789', NaN, RangeError),
 			]);
+		});
+	});
+
+	describe('#chain()', () => {
+		it('chains two iterators together', async () => {
+			async function testWith(lhs, rhs, expected) {
+				await asyncIterEqual(
+					new AsyncRiter(intoAsync(lhs)).chain(intoAsync(rhs)),
+					intoAsync(expected)
+				);
+			}
+
+			await Promise.all([
+				testWith([1, 2, 3], [4, 5, 6], [1, 2, 3, 4, 5, 6]),
+				testWith('Async', 'Iterator', 'AsyncIterator'),
+				testWith([1, 2, 3], [], [1, 2, 3]),
+				testWith([], [1, 2, 3], [1, 2, 3]),
+				testWith([], [], []),
+			]);
+		});
+		it('also chains three or more iterators', async () => {
+			async function testWith(lhs, rhs, expected) {
+				await asyncIterEqual(
+					new AsyncRiter(intoAsync(lhs))
+						.chain(...rhs.map(intoAsync)),
+					intoAsync(expected)
+				);
+			}
+
+			await Promise.all([
+				testWith([1, 2], [[3, 4], [5, 6]], [1, 2, 3, 4, 5, 6]),
+				testWith('foo', ['bar', 'baz', 'quux'], 'foobarbazquux'),
+				testWith([10], [[], [], []], [10]),
+			]);
+		});
+		it('is no-op if no arguments are provided', () => {
+			function testWith(lhs) {
+				const
+					riter = new AsyncRiter(intoAsync(lhs)),
+					iter = riter.asyncIter;
+				iter.next = () => Assert.fail();
+				const chained = riter.chain();
+				Assert.equal(chained, riter);
+				Assert.equal(chained.asyncIter, iter);
+			}
+
+			testWith([1, 2, 3]);
+			testWith('noop');
 		});
 	});
 

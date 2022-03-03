@@ -26,6 +26,8 @@ new Riter(document.querySelectorAll('td'))
 
 For the sake of completeness, an iterable/iterator is object that correctly implements TypeScript's `Iterable<T>`/`Iterator<T>` interface respectively; their `async` counterparts, on the other hand, should correctly implement `AsyncIterable<T>` and `AsyncIterator<T>`.
 
+It doesn't work well with generator object's `.next()` arguments and final `return` value. I don't know how I should deal with them yet.
+
 All methods that accepts and/or returns `number` does not accept `BigInt`s for now, but they might be supported in later updates. Expect poor support for arguments beyond `Number.MAX_SAFE_INTEGER`.
 
 If a method for `Riter` takes a callback, its async counterpart can also handle async callbacks (functions that return Promises).
@@ -63,6 +65,12 @@ Alias to `#every()`.
 #### `#any(f: (a: T) => boolean): boolean`
 
 Alias to `#some()`.
+
+#### `#chain(...its: Iterable<T>[]): Riter<T>`
+
+Chains multiple iterators in a sequence. That is, it **returns** a new iterator that iterates over the original `Riter`, then each of the iterable arguments **`its`**, one by one.
+
+A `#chain()` call with no arguments is a no-op and returns itself.
 
 #### `#every(f: (a: T) => boolean): boolean`
 
@@ -111,6 +119,12 @@ Alias to `#every()`.
 #### `#any(f: (a: T) => boolean): boolean`
 
 Alias to `#some()`.
+
+#### `#chain(...its: AsyncIterable<T>[]): AsyncRiter<T>`
+
+Chains multiple async iterators in a sequence. That is, it **returns** a new async iterator that iterates over the original `AsyncRiter`, then each of the async iterable arguments **`its`**, one by one.
+
+A `#chain()` call with no arguments is a no-op and returns itself.
 
 #### `#every(f: (a: T) => boolean | Promise<boolean>): boolean`
 
