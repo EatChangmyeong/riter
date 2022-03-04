@@ -6,7 +6,7 @@ class Riter<T> implements IterableIterator<T> {
 	next(): IteratorResult<T> {
 		return this.iter.next();
 	}
-	[Symbol.iterator](): IterableIterator<T> {
+	[Symbol.iterator](): Riter<T> {
 		return this;
 	}
 
@@ -42,11 +42,12 @@ class Riter<T> implements IterableIterator<T> {
 	concat(...its: Iterable<T>[]): Riter<T> {
 		if(its.length === 0)
 			return this;
-		return new Riter((function*(lhs: Riter<T>, rhs: Iterable<T>[]) {
+		const gen_fn = function*(lhs: Riter<T>, rhs: Iterable<T>[]) {
 			yield* lhs;
 			for(const x of rhs)
 				yield* x;
-		})(this, its));
+		};
+		return new Riter(gen_fn(this, its));
 	}
 
 	every(f: (a: T) => boolean): boolean {
@@ -74,6 +75,13 @@ class Riter<T> implements IterableIterator<T> {
 				return true;
 		}
 	}
+
+	toAsync(): AsyncRiter<T> {
+		const gen_fn = async function*(riter: Riter<T>) {
+			yield* riter;
+		};
+		return new AsyncRiter(gen_fn(this));
+	}
 }
 
 class AsyncRiter<T> implements AsyncIterableIterator<T> {
@@ -84,7 +92,7 @@ class AsyncRiter<T> implements AsyncIterableIterator<T> {
 	next(): Promise<IteratorResult<T>> {
 		return this.asyncIter.next();
 	}
-	[Symbol.asyncIterator](): AsyncIterableIterator<T> {
+	[Symbol.asyncIterator](): AsyncRiter<T> {
 		return this;
 	}
 
@@ -115,14 +123,7 @@ class AsyncRiter<T> implements AsyncIterableIterator<T> {
 	append(...values: T[]): AsyncRiter<T> {
 		if(values.length === 0)
 			return this;
-		// TODO: replace this implementation with
-		// return this.concat(new Riter(values).toAsync());
-		return this.concat({
-			async *[Symbol.asyncIterator]() {
-				for(const x of values)
-					yield x;
-			}
-		});
+		return this.concat(new Riter(values).toAsync());
 	}
 
 	// alias to #concat()
@@ -166,6 +167,13 @@ class AsyncRiter<T> implements AsyncIterableIterator<T> {
 			if(await (f(value) as unknown))
 				return true;
 		}
+	}
+
+	async toSync(): Promise<Riter<T>> {
+		const result = [];
+		for await(const x of this)
+			result.push(x);
+		return new Riter(result);
 	}
 }
 

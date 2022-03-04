@@ -287,6 +287,31 @@ describe('Riter', () => {
 			testWith('zxcv', []);
 		});
 	});
+
+	describe('#toAsync()', () => {
+		it('turns a Riter to AsyncRiter', () => {
+			function testWith(iterable) {
+				Assert.ok(new Riter(iterable).toAsync() instanceof AsyncRiter);
+			}
+
+			testWith([]);
+			testWith('asdf');
+		});
+		it('yields the same elements as the original', async () => {
+			async function testWith(iter_factory) {
+				asyncIterEqual(
+					new Riter(iter_factory()).toAsync(),
+					intoAsync(iter_factory())
+				);
+			}
+
+			await Promise.all([
+				testWith(() => [1, 2, 3]),
+				testWith(() => 'sync_to_async'),
+				testWith(() => ['abc', 'def', 'ghi']),
+			]);
+		});
+	});
 });
 
 describe('AsyncRiter', () => {
@@ -613,6 +638,35 @@ describe('AsyncRiter', () => {
 			await Promise.all([
 				testWith([3, 5, 6], x => x % 2 === 0, true),
 				testWith([4, 7, 10], x => x % 3 === 0, false),
+			]);
+		});
+	});
+
+	describe('#toSync()', () => {
+		it('consumes the AsyncRiter to create a Riter', async () => {
+			async function testWith(iterable) {
+				const riter = new AsyncRiter(intoAsync(iterable));
+				Assert.ok(await riter.toSync() instanceof Riter);
+				asyncIterDone(riter);
+			}
+
+			await Promise.all([
+				testWith([1, 2, 3]),
+				testWith('qwer'),
+			]);
+		});
+		it('yields the same elements as the original', async () => {
+			async function testWith(iter_factory) {
+				iterEqual(
+					await new AsyncRiter(intoAsync(iter_factory())).toSync(),
+					iter_factory()
+				);
+			}
+
+			await Promise.all([
+				testWith(() => [1, 2, 3]),
+				testWith(() => 'async_to_sync'),
+				testWith(() => ['abc', 'def', 'ghi']),
 			]);
 		});
 	});

@@ -98,6 +98,10 @@ This method will consume elements out of the iterator until the first match (inc
 
 It will vacuously return `false` if the iterator is empty.
 
+#### `#toAsync(): AsyncRiter<T>`
+
+**Returns** an `AsyncRiter` that yields the element of current `Riter` asynchronously. This `AsyncRiter` will consume `Riter`'s element one-by-one, on-demand.
+
 ### `new AsyncRiter(asyncIterable: AsyncIterable<T>)`
 
 Constructs a new `AsyncRiter` object.
@@ -161,6 +165,10 @@ It will vacuously resolve with `true` if the iterator is empty.
 This method will consume elements out of the iterator until the first match (inclusive). In fact, it *is* okay for `f` to return any truthy/falsy values other than just booleans; returning booleans is still recommended.
 
 It will vacuously return `false` if the iterator is empty.
+
+#### `#toSync(): Promise<Riter<T>>`
+
+**Resolves with** a `Riter` that yields the element of current `AsyncRiter` synchronously. Due to how JavaScript's `async` works, this will fully comsume the `AsyncRiter`, store its elements in an array, and use it to construct the resulting `Riter`.
 
 ## Note to self
 

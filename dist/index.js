@@ -34,11 +34,12 @@ class Riter {
     concat(...its) {
         if (its.length === 0)
             return this;
-        return new Riter((function* (lhs, rhs) {
+        const gen_fn = function* (lhs, rhs) {
             yield* lhs;
             for (const x of rhs)
                 yield* x;
-        })(this, its));
+        };
+        return new Riter(gen_fn(this, its));
     }
     every(f) {
         if (typeof f !== 'function')
@@ -61,6 +62,12 @@ class Riter {
             if (f(value))
                 return true;
         }
+    }
+    toAsync() {
+        const gen_fn = async function* (riter) {
+            yield* riter;
+        };
+        return new AsyncRiter(gen_fn(this));
     }
 }
 class AsyncRiter {
@@ -96,14 +103,7 @@ class AsyncRiter {
     append(...values) {
         if (values.length === 0)
             return this;
-        // TODO: replace this implementation with
-        // return this.concat(new Riter(values).toAsync());
-        return this.concat({
-            async *[Symbol.asyncIterator]() {
-                for (const x of values)
-                    yield x;
-            }
-        });
+        return this.concat(new Riter(values).toAsync());
     }
     // alias to #concat()
     chain(...its) {
@@ -139,6 +139,12 @@ class AsyncRiter {
             if (await f(value))
                 return true;
         }
+    }
+    async toSync() {
+        const result = [];
+        for await (const x of this)
+            result.push(x);
+        return new Riter(result);
     }
 }
 export { Riter, AsyncRiter };
