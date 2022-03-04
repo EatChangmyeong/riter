@@ -66,11 +66,11 @@ Alias to `#every()`.
 
 Alias to `#some()`.
 
-#### `#chain(...its: Iterable<T>[]): Riter<T>`
+#### `#concat(...its: Iterable<T>[]): Riter<T>`
 
-Chains multiple iterators in a sequence. That is, it **returns** a new iterator that iterates over the original `Riter`, then each of the iterable arguments **`its`**, one by one.
+Concatenates multiple iterators in a sequence. That is, it **returns** a new iterator that iterates over the original `Riter`, then each of the iterable arguments **`its`**, one by one.
 
-A `#chain()` call with no arguments is a no-op and returns itself.
+A `#concat()` call with no arguments is a no-op and returns itself.
 
 #### `#every(f: (a: T) => boolean): boolean`
 
@@ -120,11 +120,11 @@ Alias to `#every()`.
 
 Alias to `#some()`.
 
-#### `#chain(...its: AsyncIterable<T>[]): AsyncRiter<T>`
+#### `#concat(...its: AsyncIterable<T>[]): AsyncRiter<T>`
 
-Chains multiple async iterators in a sequence. That is, it **returns** a new async iterator that iterates over the original `AsyncRiter`, then each of the async iterable arguments **`its`**, one by one.
+Concatenates multiple async iterators in a sequence. That is, it **returns** a new async iterator that iterates over the original `AsyncRiter`, then each of the async iterable arguments **`its`**, one by one.
 
-A `#chain()` call with no arguments is a no-op and returns itself.
+A `#concat()` call with no arguments is a no-op and returns itself.
 
 #### `#every(f: (a: T) => boolean | Promise<boolean>): boolean`
 

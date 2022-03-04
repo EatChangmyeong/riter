@@ -126,11 +126,11 @@ describe('Riter', () => {
 		});
 	});
 
-	describe('#chain()', () => {
-		it('chains two iterators together', () => {
+	describe('#concat()', () => {
+		it('concatenates two iterators together', () => {
 			function testWith(lhs, rhs, expected) {
 				iterEqual(
-					new Riter(lhs).chain(rhs),
+					new Riter(lhs).concat(rhs),
 					expected
 				);
 			}
@@ -141,10 +141,10 @@ describe('Riter', () => {
 			testWith([], [1, 2, 3], [1, 2, 3]);
 			testWith([], [], []);
 		});
-		it('also chains three or more iterators', () => {
+		it('also concatenates three or more iterators', () => {
 			function testWith(lhs, rhs, expected) {
 				iterEqual(
-					new Riter(lhs).chain(...rhs),
+					new Riter(lhs).concat(...rhs),
 					expected
 				);
 			}
@@ -159,9 +159,9 @@ describe('Riter', () => {
 					riter = new Riter(lhs),
 					iter = riter.iter;
 				iter.next = () => Assert.fail();
-				const chained = riter.chain();
-				Assert.equal(chained, riter);
-				Assert.equal(chained.iter, iter);
+				const concatted = riter.concat();
+				Assert.equal(concatted, riter);
+				Assert.equal(concatted.iter, iter);
 			}
 
 			testWith([1, 2, 3]);
@@ -361,11 +361,11 @@ describe('AsyncRiter', () => {
 		});
 	});
 
-	describe('#chain()', () => {
-		it('chains two iterators together', async () => {
+	describe('#concat()', () => {
+		it('concatenates two iterators together', async () => {
 			async function testWith(lhs, rhs, expected) {
 				await asyncIterEqual(
-					new AsyncRiter(intoAsync(lhs)).chain(intoAsync(rhs)),
+					new AsyncRiter(intoAsync(lhs)).concat(intoAsync(rhs)),
 					intoAsync(expected)
 				);
 			}
@@ -378,11 +378,11 @@ describe('AsyncRiter', () => {
 				testWith([], [], []),
 			]);
 		});
-		it('also chains three or more iterators', async () => {
+		it('also concatenates three or more iterators', async () => {
 			async function testWith(lhs, rhs, expected) {
 				await asyncIterEqual(
 					new AsyncRiter(intoAsync(lhs))
-						.chain(...rhs.map(intoAsync)),
+						.concat(...rhs.map(intoAsync)),
 					intoAsync(expected)
 				);
 			}
@@ -399,9 +399,9 @@ describe('AsyncRiter', () => {
 					riter = new AsyncRiter(intoAsync(lhs)),
 					iter = riter.asyncIter;
 				iter.next = () => Assert.fail();
-				const chained = riter.chain();
-				Assert.equal(chained, riter);
-				Assert.equal(chained.asyncIter, iter);
+				const concatted = riter.concat();
+				Assert.equal(concatted, riter);
+				Assert.equal(concatted.asyncIter, iter);
 			}
 
 			testWith([1, 2, 3]);

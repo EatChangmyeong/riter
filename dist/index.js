@@ -24,7 +24,9 @@ class Riter {
     all(f) { return this.every(f); }
     // alias to #some()
     any(f) { return this.some(f); }
-    chain(...its) {
+    // alias to #concat()
+    chain(...its) { return this.concat(...its); }
+    concat(...its) {
         if (its.length === 0)
             return this;
         return new Riter((function* (lhs, rhs) {
@@ -86,7 +88,11 @@ class AsyncRiter {
     async any(f) {
         return this.some(f);
     }
+    // alias to #concat()
     chain(...its) {
+        return this.concat(...its);
+    }
+    concat(...its) {
         if (its.length === 0)
             return this;
         return new AsyncRiter((async function* (lhs, rhs) {
