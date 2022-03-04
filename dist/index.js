@@ -24,6 +24,11 @@ class Riter {
     all(f) { return this.every(f); }
     // alias to #some()
     any(f) { return this.some(f); }
+    append(...values) {
+        if (values.length === 0)
+            return this;
+        return this.concat(values);
+    }
     // alias to #concat()
     chain(...its) { return this.concat(...its); }
     concat(...its) {
@@ -87,6 +92,18 @@ class AsyncRiter {
     // alias to #some()
     async any(f) {
         return this.some(f);
+    }
+    append(...values) {
+        if (values.length === 0)
+            return this;
+        // TODO: replace this implementation with
+        // return this.concat(new Riter(values).toAsync());
+        return this.concat({
+            async *[Symbol.asyncIterator]() {
+                for (const x of values)
+                    yield x;
+            }
+        });
     }
     // alias to #concat()
     chain(...its) {

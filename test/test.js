@@ -126,6 +126,38 @@ describe('Riter', () => {
 		});
 	});
 
+	describe('#append()', () => {
+		it('appends values to the iterator', () => {
+			function testWith(lhs, rhs, expected) {
+				iterEqual(
+					new Riter(lhs).append(...rhs),
+					expected
+				);
+			}
+
+			testWith([1, 2, 3], [4, 5, 6], [1, 2, 3, 4, 5, 6]);
+			testWith('Original', [...'Appended'], 'OriginalAppended');
+			testWith([1, 2, 3], [], [1, 2, 3]);
+			testWith([], [1, 2, 3], [1, 2, 3]);
+			testWith([], [], []);
+			testWith(['one', 'two'], ['three'], ['one', 'two', 'three']);
+		});
+		it('is no-op if no arguments are provided', () => {
+			function testWith(lhs) {
+				const
+					riter = new Riter(lhs),
+					iter = riter.iter;
+				iter.next = () => Assert.fail();
+				const appended = riter.append();
+				Assert.equal(appended, riter);
+				Assert.equal(appended.iter, iter);
+			}
+
+			testWith([1, 2, 3]);
+			testWith('noop');
+		});
+	});
+
 	describe('#concat()', () => {
 		it('concatenates two iterators together', () => {
 			function testWith(lhs, rhs, expected) {
@@ -358,6 +390,40 @@ describe('AsyncRiter', () => {
 				testWith('56', -Infinity, RangeError),
 				testWith('789', NaN, RangeError),
 			]);
+		});
+	});
+
+	describe('#append()', () => {
+		it('appends values to the iterator', async () => {
+			async function testWith(lhs, rhs, expected) {
+				await asyncIterEqual(
+					new AsyncRiter(intoAsync(lhs)).append(...rhs),
+					intoAsync(expected)
+				);
+			}
+
+			await Promise.all([
+				testWith([1, 2, 3], [4, 5, 6], [1, 2, 3, 4, 5, 6]),
+				testWith('Original', [...'Appended'], 'OriginalAppended'),
+				testWith([1, 2, 3], [], [1, 2, 3]),
+				testWith([], [1, 2, 3], [1, 2, 3]),
+				testWith([], [], []),
+				testWith(['one', 'two'], ['three'], ['one', 'two', 'three']),
+			]);
+		});
+		it('is no-op if no arguments are provided', () => {
+			function testWith(lhs) {
+				const
+					riter = new AsyncRiter(intoAsync(lhs)),
+					iter = riter.asyncIter;
+				iter.next = () => Assert.fail();
+				const appended = riter.append();
+				Assert.equal(appended, riter);
+				Assert.equal(appended.asyncIter, iter);
+			}
+
+			testWith([1, 2, 3]);
+			testWith('noop');
 		});
 	});
 

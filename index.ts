@@ -30,6 +30,12 @@ class Riter<T> implements IterableIterator<T> {
 	// alias to #some()
 	any(f: (a: T) => boolean): boolean { return this.some(f); }
 
+	append(...values: T[]): Riter<T> {
+		if(values.length === 0)
+			return this;
+		return this.concat(values);
+	}
+
 	// alias to #concat()
 	chain(...its: Iterable<T>[]): Riter<T> { return this.concat(...its); }
 
@@ -104,6 +110,19 @@ class AsyncRiter<T> implements AsyncIterableIterator<T> {
 	// alias to #some()
 	async any(f: (a: T) => boolean | Promise<boolean>): Promise<boolean> {
 		return this.some(f);
+	}
+
+	append(...values: T[]): AsyncRiter<T> {
+		if(values.length === 0)
+			return this;
+		// TODO: replace this implementation with
+		// return this.concat(new Riter(values).toAsync());
+		return this.concat({
+			async *[Symbol.asyncIterator]() {
+				for(const x of values)
+					yield x;
+			}
+		});
 	}
 
 	// alias to #concat()

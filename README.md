@@ -66,11 +66,21 @@ Alias to `#every()`.
 
 Alias to `#some()`.
 
+#### `#append(...values: T[]): Riter<T>`
+
+Appends multiple values at the end of the iterator. That is, it **returns** a new iterator that iterates over the original `Riter`, then each of the arguments **`values`**, one by one.
+
+An `#append()` call with no arguments is a no-op and returns itself.
+
+`#concat()` might be more favorable if you want to add elements of one or more iterators.
+
 #### `#concat(...its: Iterable<T>[]): Riter<T>`
 
 Concatenates multiple iterators in a sequence. That is, it **returns** a new iterator that iterates over the original `Riter`, then each of the iterable arguments **`its`**, one by one.
 
 A `#concat()` call with no arguments is a no-op and returns itself.
+
+`#append()` might be more favorable if you want to add a few "independent" elements.
 
 #### `#every(f: (a: T) => boolean): boolean`
 
@@ -120,11 +130,21 @@ Alias to `#every()`.
 
 Alias to `#some()`.
 
+#### `#append(...values: T[]): AsyncRiter<T>`
+
+Appends multiple values at the end of the iterator. That is, it **returns** a new iterator that iterates over the original `AsyncRiter`, then each of the arguments **`values`**, one by one.
+
+An `#append()` call with no arguments is a no-op and returns itself.
+
+`#concat()` might be more favorable if you want to add elements of one or more iterators.
+
 #### `#concat(...its: AsyncIterable<T>[]): AsyncRiter<T>`
 
 Concatenates multiple async iterators in a sequence. That is, it **returns** a new async iterator that iterates over the original `AsyncRiter`, then each of the async iterable arguments **`its`**, one by one.
 
 A `#concat()` call with no arguments is a no-op and returns itself.
+
+`#append()` might be more favorable if you want to add a few "independent" elements.
 
 #### `#every(f: (a: T) => boolean | Promise<boolean>): boolean`
 
