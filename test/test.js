@@ -1,5 +1,10 @@
 import Assert from 'assert/strict';
 import { Riter, AsyncRiter } from '../dist/index.js';
+import comparer from '../dist/compare.js';
+
+function irandom(x) {
+	return Math.floor(x*Math.random());
+}
 
 function iterEqual(lhs, rhs, n = Infinity) {
 	lhs = lhs[Symbol.iterator]();
@@ -30,6 +35,65 @@ async function asyncIterDone(iter) {
 async function* intoAsync(iterable) {
 	yield* iterable; // async yield* can also iterate over sync iterables
 }
+
+describe('Default sorting function', () => {
+	it('mimics the behavior of SortCompare', () => {
+		function testWith(x, y, fn) {
+			const
+				[less, greater] = [x, y].sort(fn),
+				compared = comparer(x, y, fn);
+			switch(compared) {
+				case -1:
+					Assert.equal(x, less);
+					Assert.equal(y, greater);
+				break;
+				// Array.prototype.sort() had no guarantee of stability until ES2019
+				// compared == 0 case can't be reliably tested because we're targeting ES2018
+				case 1:
+					Assert.equal(y, less);
+					Assert.equal(x, greater);
+				break;
+			}
+		}
+		function random_number() {
+			return Math.tan(Math.PI*(Math.random() - 0.5));
+		}
+		function random_string() {
+			return [...Array(irandom(65))]
+					.map(() => String.fromCharCode(irandom(0x10000)));
+		}
+		/*
+			let's just return
+			- undefined
+			- null
+			- NaN
+			- numbers
+			- strings
+			and call it a day for now
+		*/
+		function random_object() {
+			const rand = Math.random();
+			if(rand < 0.01)
+				return undefined;
+			else if(rand < 0.02)
+				return null;
+			else if(rand < 0.03)
+				return NaN;
+			else if(rand < 0.515)
+				return random_number();
+			else
+				return random_string();
+		}
+
+		// default comparer
+		for(let i = 0; i < 1000; i++)
+			testWith(random_object(), random_object());
+
+		// user-defined comparer
+		for(let i = 0; i < 1000; i++)
+			testWith(random_object(), random_object(), (x, y) => x - y);
+	});
+});
 
 describe('Riter', () => {
 	it('is iterable', () => {
@@ -156,6 +220,10 @@ describe('Riter', () => {
 			testWith([1, 2, 3]);
 			testWith('noop');
 		});
+	});
+
+	describe('#compare()', () => {
+
 	});
 
 	describe('#concat()', () => {
