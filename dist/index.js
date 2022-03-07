@@ -1,3 +1,4 @@
+import * as Comparator from './compare.js';
 class Riter {
     constructor(iterable) {
         this.iter = iterable[Symbol.iterator]();
@@ -31,6 +32,23 @@ class Riter {
     }
     // alias to #concat()
     chain(...its) { return this.concat(...its); }
+    compare(rhs, f) {
+        if (f !== undefined && typeof f !== 'function')
+            throw new TypeError(`${f} is not a function`);
+        const left = this[Symbol.iterator](), right = rhs[Symbol.iterator]();
+        while (true) {
+            const lvalue = left.next(), rvalue = right.next();
+            if (lvalue.done)
+                return rvalue.done
+                    ? 0
+                    : -1;
+            if (rvalue.done)
+                return 1;
+            const compared = Comparator.sync(lvalue.value, rvalue.value, f);
+            if (compared !== 0)
+                return compared;
+        }
+    }
     concat(...its) {
         if (its.length === 0)
             return this;
@@ -108,6 +126,23 @@ class AsyncRiter {
     // alias to #concat()
     chain(...its) {
         return this.concat(...its);
+    }
+    async compare(rhs, f) {
+        if (f !== undefined && typeof f !== 'function')
+            throw new TypeError(`${f} is not a function`);
+        const left = this[Symbol.asyncIterator](), right = rhs[Symbol.asyncIterator]();
+        while (true) {
+            const lvalue = await left.next(), rvalue = await right.next();
+            if (lvalue.done)
+                return rvalue.done
+                    ? 0
+                    : -1;
+            if (rvalue.done)
+                return 1;
+            const compared = await Comparator.async(lvalue.value, rvalue.value, f);
+            if (compared !== 0)
+                return compared;
+        }
     }
     concat(...its) {
         if (its.length === 0)

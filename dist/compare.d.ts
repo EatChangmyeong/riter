@@ -1,2 +1,2 @@
-export declare function default_compare_fn(x: unknown, y: unknown): number;
-export default function (x: unknown, y: unknown, fn?: (a: unknown, b: unknown) => unknown): number;
+export declare function sync<T>(x: T, y: T, fn?: (a: T, b: T) => number): number;
+export declare function async<T>(x: T, y: T, fn?: (a: T, b: T) => number | Promise<number>): Promise<number>;

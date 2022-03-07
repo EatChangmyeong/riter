@@ -1,9 +1,14 @@
 import Assert from 'assert/strict';
 import { Riter, AsyncRiter } from '../dist/index.js';
-import comparer from '../dist/compare.js';
+import { sync as comparator } from '../dist/compare.js';
 
 function irandom(x) {
 	return Math.floor(x*Math.random());
+}
+function signZero(x) {
+	return x === 0
+		? 0
+		: Math.sign(x);
 }
 
 function iterEqual(lhs, rhs, n = Infinity) {
@@ -38,10 +43,10 @@ async function* intoAsync(iterable) {
 
 describe('Default sorting function', () => {
 	it('mimics the behavior of SortCompare', () => {
-		function testWith(x, y, fn) {
+		function testWith(x, y, f) {
 			const
-				[less, greater] = [x, y].sort(fn),
-				compared = comparer(x, y, fn);
+				[less, greater] = [x, y].sort(f),
+				compared = comparator(x, y, f);
 			switch(compared) {
 				case -1:
 					Assert.equal(x, less);
@@ -223,7 +228,116 @@ describe('Riter', () => {
 	});
 
 	describe('#compare()', () => {
+		function testWith(lhs_factory, rhs_factory, expected, f) {
+			Assert.equal(
+				signZero(new Riter(lhs_factory()).compare(rhs_factory(), f)),
+				signZero(expected)
+			);
+			Assert.equal(
+				signZero(new Riter(rhs_factory()).compare(lhs_factory(), f)),
+				signZero(-expected)
+			);
+		}
 
+		it('compares two iterators lexicographically', () => {
+			// neither is prefix of the other
+			testWith(() => [1, 2, 3, 4], () => [1, 2, 4, 5], -1);
+			testWith(() => 'ace', () => 'abcd', 1);
+			testWith(() => '123', () => '45', -1);
+
+			// one is prefix of the other
+			testWith(() => [1, 2, 3], () => [1, 2, 3, 4, 5], -1);
+			testWith(() => 'eatchangmyeong', () => 'eatch', 1);
+
+			// both are same
+			testWith(() => [9, 7, 5, 3], () => [9, 7, 5, 3], 0);
+			testWith(() => 'foo', () => 'foo', 0);
+
+			// one is empty
+			testWith(() => ['a', 'a', 'a'], () => [], 1);
+			testWith(() => '', () => 'vs empty', -1);
+
+			// both are empty
+			testWith(() => [], () => [], 0);
+		});
+
+		it('accepts user-defined comparator', () => {
+			function reverse_as_number(x, y) {
+				return y - x;
+			}
+			testWith(() => [1, 2, 4], () => [5, 7, 8], 1, reverse_as_number);
+			testWith(() => ['123'], () => ['45'], -1, reverse_as_number);
+
+			function compare_pair([la, lb], [ra, rb]) {
+				return la != ra
+					? la - ra
+					: lb - rb;
+			}
+			testWith(
+				() => [[3, 5], [9, 2], [-5, -4]],
+				() => [[3, 5], [9, 1], [-5, -4]],
+				1, compare_pair
+			);
+			testWith(
+				() => [[3, 5], [9, 2], [-5, -4]],
+				() => [[3, 5], [10, 2], [-5, -4]],
+				-1, compare_pair
+			);
+
+			function by_length(x, y) {
+				return x.length - y.length;
+			}
+			testWith(() => ['ab', 'cd'], () => ['ef', 'g'], 1, by_length);
+		});
+
+		it('rejects non-function argument', () => {
+			function testWith(lhs, rhs, f) {
+				Assert.throws(
+					() => new Riter(lhs).compare(rhs, f),
+					TypeError
+				);
+			}
+
+			testWith([1, 2], [3, 4], true);
+			testWith([4, 5], [6], 2);
+			testWith([], [[]], 2n);
+			testWith('asdfasdf', 'asdfasdf', 'asdfasdf');
+			testWith('qw', 'er', {});
+			testWith('zx', 'cv', []);
+		});
+
+		it('never returns negative zero or NaN', () => {
+			function testWith(iter_factory, f) {
+				const result = new Riter(iter_factory()).compare(iter_factory(), f);
+				Assert.notEqual(result, -0);
+				Assert.notEqual(result, NaN);
+			}
+			function always_minus_zero() {
+				return -0;
+			}
+			function maybe_minus_zero() {
+				return Math.random() < 0.5 ? 0 : -0;
+			}
+			function always_nan() {
+				return NaN;
+			}
+			function maybe_nan() {
+				return Math.random() < 0.5 ? 0 : NaN;
+			}
+
+			testWith(() => [1, 2, 3], () => always_minus_zero);
+			testWith(() => [], always_minus_zero);
+			testWith(() => 'equal_test', always_minus_zero);
+			testWith(() => [1, 2, 3], () => maybe_minus_zero);
+			testWith(() => [], maybe_minus_zero);
+			testWith(() => 'equal_test', maybe_minus_zero);
+			testWith(() => [1, 2, 3], () => always_nan);
+			testWith(() => [], always_nan);
+			testWith(() => 'equal_test', always_nan);
+			testWith(() => [1, 2, 3], () => maybe_nan);
+			testWith(() => [], maybe_nan);
+			testWith(() => 'equal_test', maybe_nan);
+		});
 	});
 
 	describe('#concat()', () => {
@@ -517,6 +631,144 @@ describe('AsyncRiter', () => {
 
 			testWith([1, 2, 3]);
 			testWith('noop');
+		});
+	});
+
+	describe('#compare()', () => {
+		async function testWith(lhs_factory, rhs_factory, expected, f) {
+			Assert.equal(
+				signZero(
+					await new AsyncRiter(intoAsync(lhs_factory()))
+						.compare(intoAsync(rhs_factory()), f)
+				),
+				signZero(expected)
+			);
+			Assert.equal(
+				signZero(
+					await new AsyncRiter(intoAsync(rhs_factory()))
+						.compare(intoAsync(lhs_factory()), f)
+				),
+				signZero(-expected)
+			);
+		}
+
+		it('compares two iterators lexicographically', async () => {
+			await Promise.all([
+				// neither is prefix of the other
+				testWith(() => [1, 2, 3, 4], () => [1, 2, 4, 5], -1),
+				testWith(() => 'ace', () => 'abcd', 1),
+				testWith(() => '123', () => '45', -1),
+
+				// one is prefix of the other
+				testWith(() => [1, 2, 3], () => [1, 2, 3, 4, 5], -1),
+				testWith(() => 'eatchangmyeong', () => 'eatch', 1),
+
+				// both are same
+				testWith(() => [9, 7, 5, 3], () => [9, 7, 5, 3], 0),
+				testWith(() => 'foo', () => 'foo', 0),
+
+				// one is empty
+				testWith(() => ['a', 'a', 'a'], () => [], 1),
+				testWith(() => '', () => 'vs empty', -1),
+
+				// both are empty
+				testWith(() => [], () => [], 0),
+			]);
+		});
+
+		it('accepts user-defined comparator', async () => {
+			function reverse_as_number(x, y) {
+				return y - x;
+			}
+			function compare_pair([la, lb], [ra, rb]) {
+				return la != ra
+					? la - ra
+					: lb - rb;
+			}
+			function by_length(x, y) {
+				return x.length - y.length;
+			}
+
+			await Promise.all([
+				testWith(() => [1, 2, 4], () => [5, 7, 8], 1, reverse_as_number),
+				testWith(() => ['123'], () => ['45'], -1, reverse_as_number),
+				testWith(
+					() => [[3, 5], [9, 2], [-5, -4]],
+					() => [[3, 5], [9, 1], [-5, -4]],
+					1, compare_pair
+				),
+				testWith(
+					() => [[3, 5], [9, 2], [-5, -4]],
+					() => [[3, 5], [10, 2], [-5, -4]],
+					-1, compare_pair
+				),
+				testWith(() => ['ab', 'cd'], () => ['ef', 'g'], 1, by_length),
+			]);
+		});
+
+		it('rejects non-function argument', async () => {
+			async function testWith(lhs, rhs, f) {
+				await Assert.rejects(
+					new AsyncRiter(intoAsync(lhs)).compare(intoAsync(rhs), f),
+					TypeError
+				);
+			}
+
+			await Promise.all([
+				testWith([1, 2], [3, 4], true),
+				testWith([4, 5], [6], 2),
+				testWith([], [[]], 2n),
+				testWith('asdfasdf', 'asdfasdf', 'asdfasdf'),
+				testWith('qw', 'er', {}),
+				testWith('zx', 'cv', []),
+			]);
+		});
+
+		it('accepts promise as callback return value', async () => {
+			async function async_as_number(x, y) {
+				return x - y;
+			}
+
+			await Promise.all([
+				testWith(() => [1, 2, 4], () => [5, 7, 8], -1, async_as_number),
+				testWith(() => ['123'], () => ['45'], 1, async_as_number),
+			]);
+		});
+
+		it('never returns negative zero or NaN', async () => {
+			async function testWith(iter_factory, f) {
+				const result = await new AsyncRiter(intoAsync(iter_factory()))
+					.compare(intoAsync(iter_factory()), f);
+				Assert.notEqual(result, -0);
+				Assert.notEqual(result, NaN);
+			}
+			function always_minus_zero() {
+				return -0;
+			}
+			function maybe_minus_zero() {
+				return Math.random() < 0.5 ? 0 : -0;
+			}
+			function always_nan() {
+				return NaN;
+			}
+			function maybe_nan() {
+				return Math.random() < 0.5 ? 0 : NaN;
+			}
+
+			await Promise.all([
+				testWith(() => [1, 2, 3], () => always_minus_zero),
+				testWith(() => [], always_minus_zero),
+				testWith(() => 'equal_test', always_minus_zero),
+				testWith(() => [1, 2, 3], () => maybe_minus_zero),
+				testWith(() => [], maybe_minus_zero),
+				testWith(() => 'equal_test', maybe_minus_zero),
+				testWith(() => [1, 2, 3], () => always_nan),
+				testWith(() => [], always_nan),
+				testWith(() => 'equal_test', always_nan),
+				testWith(() => [1, 2, 3], () => maybe_nan),
+				testWith(() => [], maybe_nan),
+				testWith(() => 'equal_test', maybe_nan),
+			]);
 		});
 	});
 

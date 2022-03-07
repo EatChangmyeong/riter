@@ -30,7 +30,7 @@ It doesn't work well with generator object's `.next()` arguments and final `retu
 
 All methods that accepts and/or returns `number` does not accept `BigInt`s for now, but they might be supported in later updates. Expect poor support for arguments beyond `Number.MAX_SAFE_INTEGER`.
 
-If a method for `Riter` takes a callback, its async counterpart can also handle async callbacks (functions that return Promises).
+If a method for `Riter` takes a callback, its async counterpart can also handle `async` callbacks (functions that return Promises).
 
 If an error occurs in any `async` method, the method itself won't throw anything; the returned promise will reject instead.
 
@@ -73,6 +73,28 @@ Appends multiple values at the end of the iterator. That is, it **returns** a ne
 An `#append()` call with no arguments is a no-op and returns itself.
 
 `#concat()` might be more favorable if you want to add elements of one or more iterators.
+
+#### `#chain(...its: Iterable<T>[]): Riter<T>`
+
+Alias to `#concat()`.
+
+#### `#compare(rhs: Iterable<T>, f?: (a: T, b: T) => number): number`
+
+Compares two iterators lexicographically and, according to the result, **returns**:
+
+* a negative number if `this` compares less than `rhs`,
+* a positive number if `this` compares greater than `rhs`, and
+* zero if `this` compares equal to `rhs`.
+
+Lexicographic comparison works by comparing elements one-by-one until it encounters a mismatch or at least one of them finishes.
+
+* If either element compares less than the other, the original iterator also compares less.
+* If both iterators finish at the same time, they compare equal.
+* If either iterator finishes first, that iterator compares less than the other.
+
+This method may return `Infinity` or `-Infinity`, but it never returns `-0` or `NaN`.
+
+A user-defined comparison function **`f`** can be supplied. In which case, `-0` and `NaN` is considered as `0`. In fact, it *is* okay for `f` to return anything other than numbers if `+f(...)` does not throw; returning numbers is still recommended. If `f` is *not* supplied or is `undefined`, it will mirror the behavior of `Array.prototype.sort()`'s default comparator (coerce both into string before comparing).
 
 #### `#concat(...its: Iterable<T>[]): Riter<T>`
 
@@ -141,6 +163,28 @@ Appends multiple values at the end of the iterator. That is, it **returns** a ne
 An `#append()` call with no arguments is a no-op and returns itself.
 
 `#concat()` might be more favorable if you want to add elements of one or more iterators.
+
+#### `#chain(...its: AsyncIterable<T>[]): AsyncRiter<T>`
+
+Alias to `#concat()`.
+
+#### `#compare(rhs: AsyncIterable<T>, f?: (a: T, b: T) => number | Promise<number>): Promise<number>`
+
+Compares two async iterators lexicographically and, according to the result, **resolves with**:
+
+* a negative number if `this` compares less than `rhs`,
+* a positive number if `this` compares greater than `rhs`, and
+* zero if `this` compares equal to `rhs`.
+
+Lexicographic comparison works by comparing elements one-by-one until it encounters a mismatch or at least one of them finishes.
+
+* If either element compares less than the other, the original iterator also compares less.
+* If both iterators finish at the same time, they compare equal.
+* If either iterator finishes first, that iterator compares less than the other.
+
+This method may resolve with `Infinity` or `-Infinity`, but it never resolves with `-0` or `NaN`.
+
+A user-defined comparison function **`f`** can be supplied. In which case, `-0` and `NaN` is considered as `0`. In fact, it *is* okay for `f` to return anything other than numbers if `+(await f(...))` does not throw; returning numbers is still recommended. If `f` is *not* supplied or is `undefined`, it will mirror the behavior of `Array.prototype.sort()`'s default comparator (coerce both into string before comparing).
 
 #### `#concat(...its: AsyncIterable<T>[]): AsyncRiter<T>`
 

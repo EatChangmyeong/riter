@@ -8,6 +8,7 @@ declare class Riter<T> implements IterableIterator<T> {
     any(f: (a: T) => boolean): boolean;
     append(...values: T[]): Riter<T>;
     chain(...its: Iterable<T>[]): Riter<T>;
+    compare(rhs: Iterable<T>, f?: (a: T, b: T) => number): number;
     concat(...its: Iterable<T>[]): Riter<T>;
     every(f: (a: T) => boolean): boolean;
     some(f: (a: T) => boolean): boolean;
@@ -23,6 +24,7 @@ declare class AsyncRiter<T> implements AsyncIterableIterator<T> {
     any(f: (a: T) => boolean | Promise<boolean>): Promise<boolean>;
     append(...values: T[]): AsyncRiter<T>;
     chain(...its: AsyncIterable<T>[]): AsyncRiter<T>;
+    compare(rhs: AsyncIterable<T>, f?: (a: T, b: T) => number | Promise<number>): Promise<number>;
     concat(...its: AsyncIterable<T>[]): AsyncRiter<T>;
     every(f: (a: T) => boolean | Promise<boolean>): Promise<boolean>;
     some(f: (a: T) => boolean | Promise<boolean>): Promise<boolean>;
