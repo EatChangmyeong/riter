@@ -76,6 +76,9 @@ class Riter<T> implements IterableIterator<T> {
 	// alias to #length()
 	count(): number { return this.length() };
 
+	// alias to #repeat()
+	cycle(n: number): Riter<T> { return this.repeat(n); }
+
 	every(f: (a: T) => boolean): boolean {
 		if(typeof f !== 'function')
 			throw new TypeError(`${f} is not a function`);
@@ -97,6 +100,34 @@ class Riter<T> implements IterableIterator<T> {
 				return len;
 			len++;
 		}
+	}
+
+	repeat(n: number): Riter<T> {
+		if(typeof n !== 'number')
+			throw new TypeError(`${n} is not a number`);
+		if(isNaN(n) || n < 0)
+			throw new RangeError(`${n} should be zero or greater`);
+
+		n = Math.floor(n);
+		if(n == 0)
+			return new Riter([]);
+		if(n == 1)
+			return this;
+		const
+			result: T[] = [],
+			gen_fn = function*(iter: Riter<T>) {
+				while(true) {
+					const { value, done } = iter.next();
+					if(done)
+						break;
+					result.push(value);
+					yield value;
+				}
+				if(result.length != 0)
+					for(let i = 1; i < n; i++)
+						yield* result;
+			};
+		return new Riter(gen_fn(this));
 	}
 
 	some(f: (a: T) => boolean): boolean {
@@ -206,7 +237,10 @@ class AsyncRiter<T> implements AsyncIterableIterator<T> {
 	}
 
 	// alias to #length()
-	async count(): Promise<number> { return this.length() };
+	async count(): Promise<number> { return this.length(); }
+
+	// alias to #repeat()
+	cycle(n: number): AsyncRiter<T> { return this.repeat(n); }
 
 	async every(f: (a: T) => boolean | Promise<boolean>): Promise<boolean> {
 		if(typeof f !== 'function')
@@ -229,6 +263,34 @@ class AsyncRiter<T> implements AsyncIterableIterator<T> {
 				return len;
 			len++;
 		}
+	}
+
+	repeat(n: number): AsyncRiter<T> {
+		if(typeof n !== 'number')
+			throw new TypeError(`${n} is not a number`);
+		if(isNaN(n) || n < 0)
+			throw new RangeError(`${n} should be zero or greater`);
+
+		n = Math.floor(n);
+		if(n == 0)
+			return new AsyncRiter((async function*() {})());
+		if(n == 1)
+			return this;
+		const
+			result: T[] = [],
+			gen_fn = async function*(iter: AsyncRiter<T>) {
+				while(true) {
+					const { value, done } = await iter.next();
+					if(done)
+						break;
+					result.push(value);
+					yield value;
+				}
+				if(result.length != 0)
+					for(let i = 1; i < n; i++)
+						yield* result;
+			};
+		return new AsyncRiter(gen_fn(this));
 	}
 
 	async some(f: (a: T) => boolean | Promise<boolean>): Promise<boolean> {

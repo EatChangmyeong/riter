@@ -24,6 +24,22 @@ function iterEqual(lhs, rhs, n = Infinity) {
 function iterDone(iter) {
 	Assert.ok(iter.next().done);
 }
+function* repeat(iterable, count = Infinity) {
+	const result = [];
+	for(const x of iterable)
+		result.push(x);
+	for(let i = 0; i < count; i++)
+		yield* result;
+}
+function iterNoop(iterable, f) {
+	const
+		riter = new Riter(iterable),
+		iter = riter.iter;
+	iter.next = () => Assert.fail();
+	const fx = f(riter);
+	Assert.equal(fx, riter);
+	Assert.equal(fx.iter, iter);
+}
 async function asyncIterEqual(lhs, rhs, n = Infinity) {
 	lhs = lhs[Symbol.asyncIterator]();
 	rhs = rhs[Symbol.asyncIterator]();
@@ -37,6 +53,23 @@ async function asyncIterEqual(lhs, rhs, n = Infinity) {
 async function asyncIterDone(iter) {
 	Assert.ok((await iter.next()).done);
 }
+async function* asyncRepeat(iterable, count = Infinity) {
+	const result = [];
+	for await(const x of iterable)
+		result.push(x);
+	for(let i = 0; i < count; i++)
+		yield* result;
+}
+async function asyncIterNoop(iterable, f) {
+	const
+		riter = new AsyncRiter(intoAsync(iterable)),
+		iter = riter.asyncIter;
+	iter.next = () => Assert.fail();
+	const fx = await f(riter);
+	Assert.equal(fx, riter);
+	Assert.equal(fx.asyncIter, iter);
+}
+
 async function* intoAsync(iterable) {
 	yield* iterable; // async yield* can also iterate over sync iterables
 }
@@ -104,6 +137,7 @@ describe('Riter', () => {
 	it('is iterable', () => {
 		for(const x of new Riter([]));
 	});
+
 	it('is an iterator', () => {
 		const iter = new Riter([1, 2]);
 		Assert.deepEqual(iter.next(), { value: 1, done: false });
@@ -125,6 +159,7 @@ describe('Riter', () => {
 				async *[Symbol.asyncIterator]() {},
 			});
 		});
+
 		it('rejects non-iterable', () => {
 			function testWith(arg) {
 				Assert.throws(() => new Riter(arg), TypeError);
@@ -161,6 +196,7 @@ describe('Riter', () => {
 				[...Array(50)].map((x, i) => 2*i + 100)
 			);
 		});
+
 		it('skips all remaining elements if the iterator is short', () => {
 			function testWith(iterable, n, expected) {
 				const riter = new Riter(iterable);
@@ -174,6 +210,7 @@ describe('Riter', () => {
 			testWith(new Set('bar'), 4, 3);
 			testWith(['baz'], Infinity, 1); // infinity works too
 		});
+
 		it('rejects non-number or negative argument', () => {
 			function testWith(iterable, n, type) {
 				Assert.throws(
@@ -211,15 +248,10 @@ describe('Riter', () => {
 			testWith([], [], []);
 			testWith(['one', 'two'], ['three'], ['one', 'two', 'three']);
 		});
+
 		it('is no-op if no arguments are provided', () => {
-			function testWith(lhs) {
-				const
-					riter = new Riter(lhs),
-					iter = riter.iter;
-				iter.next = () => Assert.fail();
-				const appended = riter.append();
-				Assert.equal(appended, riter);
-				Assert.equal(appended.iter, iter);
+			function testWith(iter) {
+				iterNoop(iter, x => x.append());
 			}
 
 			testWith([1, 2, 3]);
@@ -354,6 +386,7 @@ describe('Riter', () => {
 			testWith([], [1, 2, 3], [1, 2, 3]);
 			testWith([], [], []);
 		});
+
 		it('also concatenates three or more iterators', () => {
 			function testWith(lhs, rhs, expected) {
 				iterEqual(
@@ -366,15 +399,10 @@ describe('Riter', () => {
 			testWith('foo', ['bar', 'baz', 'quux'], 'foobarbazquux');
 			testWith([10], [[], [], []], [10]);
 		});
+
 		it('is no-op if no arguments are provided', () => {
-			function testWith(lhs) {
-				const
-					riter = new Riter(lhs),
-					iter = riter.iter;
-				iter.next = () => Assert.fail();
-				const concatted = riter.concat();
-				Assert.equal(concatted, riter);
-				Assert.equal(concatted.iter, iter);
+			function testWith(iter) {
+				iterNoop(iter, x => x.concat());
 			}
 
 			testWith([1, 2, 3]);
@@ -446,6 +474,82 @@ describe('Riter', () => {
 		});
 	});
 
+	describe('#repeat()', () => {
+		it('repeats the iterator', () => {
+			function testWith(iter_factory, count) {
+				iterEqual(
+					new Riter(iter_factory()).repeat(count),
+					repeat(iter_factory(), count)
+				);
+			}
+
+			testWith(() => [1, -1], 100);
+			testWith(() => [5], 1);
+			testWith(() => 'repeat', 64);
+			testWith(() => 'A', 10000);
+		});
+
+		it('works with infinite repeat count', () => {
+			function testWith(iter_factory, loop, until) {
+				iterEqual(
+					new Riter(iter_factory()).repeat(Infinity),
+					repeat(iter_factory(), loop),
+					until
+				);
+			}
+
+			testWith(() => [2, -2], 10000, 20000);
+			testWith(() => 'infinite', 10000, 80000);
+		});
+
+		it('returns an empty iterator if the original iterator is empty', () => {
+			function testWith(iterable, count) {
+				iterDone(new Riter(iterable).repeat(count));
+			}
+
+			testWith([], 100);
+			testWith('', Infinity);
+		});
+
+		it('returns an empty iterator if count is zero', () => {
+			function testWith(iterable) {
+				iterDone(new Riter(iterable).repeat(0));
+			}
+
+			testWith(['as', 'df', 'gh']);
+			testWith('I should be ignored');
+		});
+
+		it('rejects non-number or negative argument', () => {
+			function testWith(iterable, n, type) {
+				Assert.throws(
+					() => new Riter(iterable).repeat(n),
+					type
+				);
+			}
+
+			testWith([0], false, TypeError);
+			testWith([1, 2, 3], 5n, TypeError);
+			testWith([4, 5, 6, 7], '3', TypeError);
+			testWith([8, 9], Symbol(), TypeError);
+			testWith([10], function() {}, TypeError);
+			testWith([11, 12, 13, 14], {}, TypeError);
+			testWith([15, 16], undefined, TypeError);
+			testWith('1234', -1, RangeError);
+			testWith('56', -Infinity, RangeError);
+			testWith('789', NaN, RangeError);
+		});
+
+		it('is no-op if count is one', () => {
+			function testWith(iter) {
+				iterNoop(iter, x => x.repeat(1));
+			}
+
+			testWith([1, 2, 3]);
+			testWith('noop');
+		});
+	});
+
 	describe('#some()', () => {
 		it('consumes the iterator until the first match', () => {
 			const riter = new Riter([1, 3, 5, 7, 10, 11, 14]);
@@ -497,6 +601,7 @@ describe('Riter', () => {
 			testWith([]);
 			testWith('asdf');
 		});
+
 		it('yields the same elements as the original', async () => {
 			async function testWith(iter_factory) {
 				asyncIterEqual(
@@ -518,6 +623,7 @@ describe('AsyncRiter', () => {
 	it('is async iterable', async () => {
 		for await(const x of new AsyncRiter((async function*() {})()));
 	});
+
 	it('is an async iterator', async () => {
 		const iter = new AsyncRiter((async function*() {
 			yield 1;
@@ -539,6 +645,7 @@ describe('AsyncRiter', () => {
 				async *[Symbol.asyncIterator]() {},
 			});
 		});
+
 		it('rejects non-iterable', () => {
 			function testWith(arg) {
 				Assert.throws(() => new AsyncRiter(arg), TypeError);
@@ -580,6 +687,7 @@ describe('AsyncRiter', () => {
 				),
 			]);
 		});
+
 		it('skips all remaining elements if the iterator is short', async () => {
 			async function testWith(iterable, n, expected) {
 				const riter = new AsyncRiter(intoAsync(iterable));
@@ -595,6 +703,7 @@ describe('AsyncRiter', () => {
 				testWith(['baz'], Infinity, 1), // infinity works too
 			]);
 		});
+
 		it('rejects non-number or negative argument', async () => {
 			async function testWith(iterable, n, type) {
 				await Assert.rejects(
@@ -636,19 +745,16 @@ describe('AsyncRiter', () => {
 				testWith(['one', 'two'], ['three'], ['one', 'two', 'three']),
 			]);
 		});
-		it('is no-op if no arguments are provided', () => {
-			function testWith(lhs) {
-				const
-					riter = new AsyncRiter(intoAsync(lhs)),
-					iter = riter.asyncIter;
-				iter.next = () => Assert.fail();
-				const appended = riter.append();
-				Assert.equal(appended, riter);
-				Assert.equal(appended.asyncIter, iter);
+
+		it('is no-op if no arguments are provided', async () => {
+			async function testWith(iter) {
+				await asyncIterNoop(iter, x => x.append());
 			}
 
-			testWith([1, 2, 3]);
-			testWith('noop');
+			await Promise.all([
+				testWith([1, 2, 3]),
+				testWith('noop'),
+			]);
 		});
 	});
 
@@ -806,6 +912,7 @@ describe('AsyncRiter', () => {
 				testWith([], [], []),
 			]);
 		});
+
 		it('also concatenates three or more iterators', async () => {
 			async function testWith(lhs, rhs, expected) {
 				await asyncIterEqual(
@@ -821,19 +928,16 @@ describe('AsyncRiter', () => {
 				testWith([10], [[], [], []], [10]),
 			]);
 		});
-		it('is no-op if no arguments are provided', () => {
-			function testWith(lhs) {
-				const
-					riter = new AsyncRiter(intoAsync(lhs)),
-					iter = riter.asyncIter;
-				iter.next = () => Assert.fail();
-				const concatted = riter.concat();
-				Assert.equal(concatted, riter);
-				Assert.equal(concatted.asyncIter, iter);
+
+		it('is no-op if no arguments are provided', async () => {
+			async function testWith(iter) {
+				await asyncIterNoop(iter, x => x.concat());
 			}
 
-			testWith([1, 2, 3]);
-			testWith('noop');
+			await Promise.all([
+				testWith([1, 2, 3]),
+				testWith('noop'),
+			]);
 		});
 	});
 
@@ -932,6 +1036,92 @@ describe('AsyncRiter', () => {
 		});
 	});
 
+	describe('#repeat()', () => {
+		it('repeats the iterator', async () => {
+			async function testWith(iter_factory, count) {
+				await asyncIterEqual(
+					new AsyncRiter(intoAsync(iter_factory())).repeat(count),
+					asyncRepeat(intoAsync(iter_factory()), count)
+				);
+			}
+
+			await Promise.all([
+				testWith(() => [1, -1], 100),
+				testWith(() => [5], 1),
+				testWith(() => 'repeat', 64),
+				testWith(() => 'A', 10000),
+			]);
+		});
+
+		it('works with infinite repeat count', async () => {
+			async function testWith(iter_factory, loop, until) {
+				await asyncIterEqual(
+					new AsyncRiter(intoAsync(iter_factory())).repeat(Infinity),
+					asyncRepeat(intoAsync(iter_factory()), loop),
+					until
+				);
+			}
+
+			await Promise.all([
+				testWith(() => [2, -2], 10000, 20000),
+				testWith(() => 'infinite', 10000, 80000),
+			]);
+		});
+
+		it('returns an empty iterator if the original iterator is empty', async () => {
+			async function testWith(iterable, count) {
+				await asyncIterDone(new AsyncRiter(intoAsync(iterable)).repeat(count));
+			}
+
+			await Promise.all([
+				testWith([], 100),
+				testWith('', Infinity),
+			]);
+		});
+
+		it('returns an empty iterator if count is zero', async () => {
+			async function testWith(iterable) {
+				await asyncIterDone(new AsyncRiter(intoAsync(iterable)).repeat(0));
+			}
+
+			await Promise.all([
+				testWith(['as', 'df', 'gh']),
+				testWith('I should be ignored'),
+			]);
+		});
+
+		it('rejects non-number or negative argument', () => {
+			function testWith(iterable, n, type) {
+				Assert.throws(
+					() => new AsyncRiter(intoAsync(iterable)).repeat(n),
+					type
+				);
+			}
+
+			testWith([0], false, TypeError);
+			testWith([1, 2, 3], 5n, TypeError);
+			testWith([4, 5, 6, 7], '3', TypeError);
+			testWith([8, 9], Symbol(), TypeError);
+			testWith([10], function() {}, TypeError);
+			testWith([11, 12, 13, 14], {}, TypeError);
+			testWith([15, 16], undefined, TypeError);
+			testWith('1234', -1, RangeError);
+			testWith('56', -Infinity, RangeError);
+			testWith('789', NaN, RangeError);
+		});
+
+		it('is no-op if count is one', async () => {
+			async function testWith(iter) {
+				await asyncIterNoop(iter, x => x.repeat(1));
+			}
+
+			await Promise.all([
+				testWith([1, 2, 3]),
+				testWith('noop'),
+			]);
+		});
+	});
+
 	describe('#some()', () => {
 		it('consumes the iterator until the first match', async () => {
 			const riter = new AsyncRiter(intoAsync([1, 3, 5, 7, 10, 11, 14]));
@@ -1016,6 +1206,7 @@ describe('AsyncRiter', () => {
 				testWith('qwer'),
 			]);
 		});
+
 		it('yields the same elements as the original', async () => {
 			async function testWith(iter_factory) {
 				iterEqual(

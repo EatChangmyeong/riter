@@ -52,9 +52,9 @@ Iterable implementation for `Riter` objects.
 
 #### `#advanceBy(n: number): number`
 
-*Eagerly* discards next `n` elements away from the iterator until `{ done: true }` is encountered. The last `{ done: true }` element is also discarded.
+*Eagerly* discards next **`n`** elements away from the iterator until `{ done: true }` is encountered. The last `{ done: true }` element is also discarded.
 
-**`n`** must be zero or greater; non-integer values are rounded down. **Returns** the number of elements discarded by this call, excluding `{ done: true }` element.
+`n` must be zero or greater; non-integer values are rounded down. **Returns** the number of elements discarded by this call, excluding `{ done: true }` element.
 
 `#skip(n)` might be a better option if it should be done lazily (that is, delayed until the first `next()` call).
 
@@ -108,6 +108,10 @@ A `#concat()` call with no arguments is a no-op and returns itself.
 
 Alias to `#length()`.
 
+#### `#cycle(n: number): Riter<T>`
+
+Alias to `#repeat()`.
+
 #### `#every(f: (a: T) => boolean): boolean`
 
 **Returns** `true` if and only if every remaining elements matches the given predicate **`f`**.
@@ -119,6 +123,16 @@ It will vacuously return `true` if the iterator is empty.
 #### `#length(): number`
 
 Consumes the `Riter` and **returns** the number of elements the `Riter` had before.
+
+#### `#repeat(n: number): Riter<T>`
+
+**Returns** an iterator that repeatedly yields the elements of current `Riter` **`n`** times: after the original iterator finishes, the new iterator will restart at the first element and yield the same values in the same order.
+
+`n` must be zero or greater; non-integer values are rounded down. On the other hand, `n` can also be `Infinity`: in this case, the iterator will either keep yielding values forever, or immediately finish if the original iterator was empty.
+
+Intermediate values will be stored in an array until the first loop is done; for this reason, `#repeat()`ing over a very long, if not infinite, iterators is not a good idea.
+
+A `#repeat()` call with `n` equal to `1` is a no-op and returns itself.
 
 #### `#some(f: (a: T) => boolean): boolean`
 
@@ -150,9 +164,9 @@ Async iterable implementation for `AsyncRiter` objects.
 
 #### `#advanceBy(n: number): Promise<number>`
 
-*Eagerly* discards next `n` elements away from the async iterator until `{ done: true }` is encountered. The last `{ done: true }` element is also discarded.
+*Eagerly* discards next **`n`** elements away from the iterator until `{ done: true }` is encountered. The last `{ done: true }` element is also discarded.
 
-**`n`** must be zero or greater; non-integer values are rounded down. **Resolves with** the number of elements discarded by this call, excluding `{ done: true }` element.
+`n` must be zero or greater; non-integer values are rounded down. **Resolves with** the number of elements discarded by this call, excluding `{ done: true }` element.
 
 `#skip(n)` might be a better option if it should be done lazily (that is, delayed until the first `next()` call).
 
@@ -206,9 +220,13 @@ A `#concat()` call with no arguments is a no-op and returns itself.
 
 Alias to `#length()`.
 
+#### `#cycle(n: number): AsyncRiter<T>`
+
+Alias to `#repeat()`.
+
 #### `#every(f: (a: T) => boolean | Promise<boolean>): boolean`
 
-**Resolves with** `true` if and only if every remaining elements matches the given predicate **`f`**.
+**Returns** `true` if and only if every remaining elements matches the given predicate **`f`**.
 
 This method will consume elements out of the iterator until the first mismatch (inclusive). In fact, it *is* okay for `f` to return any truthy/falsy values other than just booleans; returning booleans is still recommended.
 
@@ -218,9 +236,19 @@ It will vacuously resolve with `true` if the iterator is empty.
 
 Consumes the `AsyncRiter` and **resolves with** the number of elements the `AsyncRiter` had before.
 
+#### `#repeat(n: number): Riter<T>`
+
+**Returns** an iterator that repeatedly yields the elements of current `AsyncRiter` **`n`** times: after the original iterator finishes, the new iterator will restart at the first element and yield the same values in the same order.
+
+`n` must be zero or greater; non-integer values are rounded down. On the other hand, `n` can also be `Infinity`: in this case, the iterator will either keep yielding values forever, or immediately finish if the original iterator was empty.
+
+Intermediate values will be stored in an array until the first loop is done; for this reason, `#repeat()`ing over a very long, if not infinite, iterators is not a good idea.
+
+A `#repeat()` call with `n` equal to `1` is a no-op and returns itself.
+
 #### `#some(f: (a: T) => boolean): boolean`
 
-**Resolves with** `true` if and only if any of the remaining elements matches the given predicate **`f`**.
+**Returns** `true` if and only if any of the remaining elements matches the given predicate **`f`**.
 
 This method will consume elements out of the iterator until the first match (inclusive). In fact, it *is* okay for `f` to return any truthy/falsy values other than just booleans; returning booleans is still recommended.
 

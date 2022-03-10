@@ -62,6 +62,8 @@ class Riter {
     // alias to #length()
     count() { return this.length(); }
     ;
+    // alias to #repeat()
+    cycle(n) { return this.repeat(n); }
     every(f) {
         if (typeof f !== 'function')
             throw new TypeError(`${f} is not a function`);
@@ -81,6 +83,30 @@ class Riter {
                 return len;
             len++;
         }
+    }
+    repeat(n) {
+        if (typeof n !== 'number')
+            throw new TypeError(`${n} is not a number`);
+        if (isNaN(n) || n < 0)
+            throw new RangeError(`${n} should be zero or greater`);
+        n = Math.floor(n);
+        if (n == 0)
+            return new Riter([]);
+        if (n == 1)
+            return this;
+        const result = [], gen_fn = function* (iter) {
+            while (true) {
+                const { value, done } = iter.next();
+                if (done)
+                    break;
+                result.push(value);
+                yield value;
+            }
+            if (result.length != 0)
+                for (let i = 1; i < n; i++)
+                    yield* result;
+        };
+        return new Riter(gen_fn(this));
     }
     some(f) {
         if (typeof f !== 'function')
@@ -167,7 +193,8 @@ class AsyncRiter {
     }
     // alias to #length()
     async count() { return this.length(); }
-    ;
+    // alias to #repeat()
+    cycle(n) { return this.repeat(n); }
     async every(f) {
         if (typeof f !== 'function')
             throw new TypeError(`${f} is not a function`);
@@ -187,6 +214,30 @@ class AsyncRiter {
                 return len;
             len++;
         }
+    }
+    repeat(n) {
+        if (typeof n !== 'number')
+            throw new TypeError(`${n} is not a number`);
+        if (isNaN(n) || n < 0)
+            throw new RangeError(`${n} should be zero or greater`);
+        n = Math.floor(n);
+        if (n == 0)
+            return new AsyncRiter((async function* () { })());
+        if (n == 1)
+            return this;
+        const result = [], gen_fn = async function* (iter) {
+            while (true) {
+                const { value, done } = await iter.next();
+                if (done)
+                    break;
+                result.push(value);
+                yield value;
+            }
+            if (result.length != 0)
+                for (let i = 1; i < n; i++)
+                    yield* result;
+        };
+        return new AsyncRiter(gen_fn(this));
     }
     async some(f) {
         if (typeof f !== 'function')
