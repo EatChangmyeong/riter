@@ -130,7 +130,7 @@ Consumes the `Riter` and **returns** the number of elements the `Riter` had befo
 
 `n` must be zero or greater; non-integer values are rounded down. On the other hand, `n` can also be `Infinity`: in this case, the iterator will either keep yielding values forever, or immediately finish if the original iterator was empty.
 
-Intermediate values will be stored in an array until the first loop is done; for this reason, `#repeat()`ing over a very long, if not infinite, iterators is not a good idea.
+Intermediate values will be accumulated to an array until the first loop is done, and stored until it is garbage collected; for this reason, `#repeat()`ing over a very long, if not infinite, iterators is not a good idea.
 
 A `#repeat()` call with `n` equal to `1` is a no-op and returns itself.
 
@@ -242,7 +242,7 @@ Consumes the `AsyncRiter` and **resolves with** the number of elements the `Asyn
 
 `n` must be zero or greater; non-integer values are rounded down. On the other hand, `n` can also be `Infinity`: in this case, the iterator will either keep yielding values forever, or immediately finish if the original iterator was empty.
 
-Intermediate values will be stored in an array until the first loop is done; for this reason, `#repeat()`ing over a very long, if not infinite, iterators is not a good idea.
+Intermediate values will be accumulated to an array until the first loop is done, and stored until it is garbage collected; for this reason, `#repeat()`ing over a very long, if not infinite, iterators is not a good idea.
 
 A `#repeat()` call with `n` equal to `1` is a no-op and returns itself.
 
