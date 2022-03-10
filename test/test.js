@@ -309,8 +309,7 @@ describe('Riter', () => {
 		it('never returns negative zero or NaN', () => {
 			function testWith(iter_factory, f) {
 				const result = new Riter(iter_factory()).compare(iter_factory(), f);
-				Assert.notEqual(result, -0);
-				Assert.notEqual(result, NaN);
+				Assert.equal(result, 0);
 			}
 			function always_minus_zero() {
 				return -0;
@@ -425,6 +424,25 @@ describe('Riter', () => {
 			testWith('asdfasdf', 'asdfasdf');
 			testWith('qwer', {});
 			testWith('zxcv', []);
+		});
+	});
+
+	describe('#length()', () => {
+		it('fully consumes the iterator', () => {
+			const riter = new Riter([1, 3, 5, 7, 10, 11, 14]);
+			riter.length();
+			iterDone(riter);
+		});
+
+		it('returns number of remaining elements', () => {
+			function testWith(iterable, expected) {
+				Assert.equal(new Riter(iterable).length(), expected);
+			}
+
+			testWith([1, 2, 4, 7], 4);
+			testWith('foobar', 6);
+			testWith([], 0);
+			testWith(new Set([1, 3, 1, 6, 9, 3, 7]), 5);
 		});
 	});
 
@@ -739,8 +757,7 @@ describe('AsyncRiter', () => {
 			async function testWith(iter_factory, f) {
 				const result = await new AsyncRiter(intoAsync(iter_factory()))
 					.compare(intoAsync(iter_factory()), f);
-				Assert.notEqual(result, -0);
-				Assert.notEqual(result, NaN);
+				Assert.equal(result, 0);
 			}
 			function always_minus_zero() {
 				return -0;
@@ -887,6 +904,30 @@ describe('AsyncRiter', () => {
 			await Promise.all([
 				testWith([2, 4, 6], x => x % 2 === 0, true),
 				testWith([3, 6, 8], x => x % 3 === 0, false),
+			]);
+		});
+	});
+
+	describe('#length()', () => {
+		it('fully consumes the iterator', async () => {
+			const riter = new AsyncRiter(intoAsync([1, 3, 5, 7, 10, 11, 14]));
+			await riter.length();
+			await asyncIterDone(riter);
+		});
+
+		it('returns number of remaining elements', async () => {
+			async function testWith(iterable, expected) {
+				Assert.equal(
+					await new AsyncRiter(intoAsync(iterable)).length(),
+					expected
+				);
+			}
+
+			await Promise.all([
+				testWith([1, 2, 4, 7], 4),
+				testWith('foobar', 6),
+				testWith([], 0),
+				testWith(new Set([1, 3, 1, 6, 9, 3, 7]), 5),
 			]);
 		});
 	});

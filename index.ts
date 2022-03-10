@@ -73,6 +73,9 @@ class Riter<T> implements IterableIterator<T> {
 		return new Riter(gen_fn(this, its));
 	}
 
+	// alias to #length()
+	count(): number { return this.length() };
+
 	every(f: (a: T) => boolean): boolean {
 		if(typeof f !== 'function')
 			throw new TypeError(`${f} is not a function`);
@@ -83,6 +86,16 @@ class Riter<T> implements IterableIterator<T> {
 				return true;
 			if(!(f(value) as unknown))
 				return false;
+		}
+	}
+
+	length(): number {
+		let len = 0;
+		while(true) {
+			const { done } = this.iter.next();
+			if(done)
+				return len;
+			len++;
 		}
 	}
 
@@ -192,6 +205,9 @@ class AsyncRiter<T> implements AsyncIterableIterator<T> {
 		})(this, its));
 	}
 
+	// alias to #length()
+	async count(): Promise<number> { return this.length() };
+
 	async every(f: (a: T) => boolean | Promise<boolean>): Promise<boolean> {
 		if(typeof f !== 'function')
 			throw new TypeError(`${f} is not a function`);
@@ -202,6 +218,16 @@ class AsyncRiter<T> implements AsyncIterableIterator<T> {
 				return true;
 			if(!await (f(value) as unknown))
 				return false;
+		}
+	}
+
+	async length(): Promise<number> {
+		let len = 0;
+		while(true) {
+			const { done } = await this.asyncIter.next();
+			if(done)
+				return len;
+			len++;
 		}
 	}
 

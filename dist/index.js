@@ -59,6 +59,9 @@ class Riter {
         };
         return new Riter(gen_fn(this, its));
     }
+    // alias to #length()
+    count() { return this.length(); }
+    ;
     every(f) {
         if (typeof f !== 'function')
             throw new TypeError(`${f} is not a function`);
@@ -68,6 +71,15 @@ class Riter {
                 return true;
             if (!f(value))
                 return false;
+        }
+    }
+    length() {
+        let len = 0;
+        while (true) {
+            const { done } = this.iter.next();
+            if (done)
+                return len;
+            len++;
         }
     }
     some(f) {
@@ -153,6 +165,9 @@ class AsyncRiter {
                 yield* x;
         })(this, its));
     }
+    // alias to #length()
+    async count() { return this.length(); }
+    ;
     async every(f) {
         if (typeof f !== 'function')
             throw new TypeError(`${f} is not a function`);
@@ -162,6 +177,15 @@ class AsyncRiter {
                 return true;
             if (!await f(value))
                 return false;
+        }
+    }
+    async length() {
+        let len = 0;
+        while (true) {
+            const { done } = await this.asyncIter.next();
+            if (done)
+                return len;
+            len++;
         }
     }
     async some(f) {

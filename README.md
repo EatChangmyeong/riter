@@ -104,6 +104,10 @@ A `#concat()` call with no arguments is a no-op and returns itself.
 
 `#append()` might be more favorable if you want to add a few "independent" elements.
 
+#### `#count(): number`
+
+Alias to `#length()`.
+
 #### `#every(f: (a: T) => boolean): boolean`
 
 **Returns** `true` if and only if every remaining elements matches the given predicate **`f`**.
@@ -111,6 +115,10 @@ A `#concat()` call with no arguments is a no-op and returns itself.
 This method will consume elements out of the iterator until the first mismatch (inclusive). In fact, it *is* okay for `f` to return any truthy/falsy values other than just booleans; returning booleans is still recommended.
 
 It will vacuously return `true` if the iterator is empty.
+
+#### `#length(): number`
+
+Consumes the `Riter` and **returns** the number of elements the `Riter` had before.
 
 #### `#some(f: (a: T) => boolean): boolean`
 
@@ -194,6 +202,10 @@ A `#concat()` call with no arguments is a no-op and returns itself.
 
 `#append()` might be more favorable if you want to add a few "independent" elements.
 
+#### `#count(): Promise<number>`
+
+Alias to `#length()`.
+
 #### `#every(f: (a: T) => boolean | Promise<boolean>): boolean`
 
 **Resolves with** `true` if and only if every remaining elements matches the given predicate **`f`**.
@@ -201,6 +213,10 @@ A `#concat()` call with no arguments is a no-op and returns itself.
 This method will consume elements out of the iterator until the first mismatch (inclusive). In fact, it *is* okay for `f` to return any truthy/falsy values other than just booleans; returning booleans is still recommended.
 
 It will vacuously resolve with `true` if the iterator is empty.
+
+#### `#length(): Promise<number>`
+
+Consumes the `AsyncRiter` and **resolves with** the number of elements the `AsyncRiter` had before.
 
 #### `#some(f: (a: T) => boolean): boolean`
 
